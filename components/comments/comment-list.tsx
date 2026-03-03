@@ -86,7 +86,7 @@ function CommentItem({ postId, comment, depth }: CommentItemProps) {
               Comentario removido.
             </p>
           ) : (
-            <p className="mt-0.5 whitespace-pre-line break-words text-[15px] leading-5">
+            <p className="mt-0.5 whitespace-pre-line wrap-break-word text-[15px] leading-5">
               {comment.content}
             </p>
           )}
