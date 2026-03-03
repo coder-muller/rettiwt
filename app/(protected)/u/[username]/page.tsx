@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PostList } from "@/components/feed/post-list";
+import { FollowToggleButton } from "@/components/follow/follow-toggle-button";
+import { StartConversationButton } from "@/components/messages/start-conversation-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth/session";
@@ -51,7 +53,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <Button asChild variant="outline" size="sm" className="rounded-full">
               <Link href="/settings/profile">Editar perfil</Link>
             </Button>
-          ) : null}
+          ) : (
+            <div className="flex items-center gap-2">
+              <FollowToggleButton
+                targetUserId={profile.userId}
+                targetUsername={profile.username}
+                isFollowingByMe={profile.isFollowingByMe}
+              />
+              {profile.canMessage ? <StartConversationButton targetUserId={profile.userId} /> : null}
+            </div>
+          )}
         </div>
 
         <p className="mt-4 whitespace-pre-line break-words text-sm leading-6 text-muted-foreground">
@@ -60,6 +71,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
         <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
           <span className="tabular-nums">{profile.postCount} posts</span>
+          <Link href={`/u/${profile.username}/followers`} className="hover:text-foreground">
+            <span className="tabular-nums font-medium text-foreground">{profile.followerCount}</span> seguidores
+          </Link>
+          <Link href={`/u/${profile.username}/following`} className="hover:text-foreground">
+            <span className="tabular-nums font-medium text-foreground">{profile.followingCount}</span> seguindo
+          </Link>
           <span>
             Membro desde{" "}
             {new Intl.DateTimeFormat("pt-BR", {

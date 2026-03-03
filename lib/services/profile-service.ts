@@ -1,3 +1,4 @@
+import { followRepository } from "@/lib/repositories/follow-repository";
 import { postRepository } from "@/lib/repositories/post-repository";
 import { profileRepository } from "@/lib/repositories/profile-repository";
 import { updateProfileSchema } from "@/lib/validation/profile";
@@ -31,7 +32,17 @@ export const profileService = {
       return null;
     }
 
-    const postCount = await profileRepository.countPostsByUserId(profile.userId);
+    const [postCount, followerCount, followingCount, relationship] = await Promise.all([
+      profileRepository.countPostsByUserId(profile.userId),
+      followRepository.countFollowers(profile.userId),
+      followRepository.countFollowing(profile.userId),
+      profile.userId === currentUserId
+        ? Promise.resolve({
+            isFollowingByMe: false,
+            followsMe: false,
+          })
+        : followRepository.getRelationship(currentUserId, profile.userId),
+    ]);
 
     return {
       userId: profile.userId,
@@ -41,7 +52,12 @@ export const profileService = {
       avatar: profile.avatarUrl ?? profile.user.image ?? null,
       joinedAt: profile.user.createdAt,
       postCount,
+      followerCount,
+      followingCount,
       isOwner: profile.userId === currentUserId,
+      isFollowingByMe: relationship.isFollowingByMe,
+      followsMe: relationship.followsMe,
+      canMessage: relationship.isFollowingByMe && relationship.followsMe,
     };
   },
 

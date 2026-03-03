@@ -1,10 +1,15 @@
 import { likeRepository } from "@/lib/repositories/like-repository";
 import { postRepository } from "@/lib/repositories/post-repository";
+import { notificationService } from "@/lib/services/notification-service";
 import { createPostSchema } from "@/lib/validation/post";
 
 export const feedService = {
   listFeed(currentUserId: string) {
     return postRepository.listFeed(currentUserId);
+  },
+
+  getPostById(postId: string, currentUserId: string) {
+    return postRepository.findFeedPostById(postId, currentUserId);
   },
 
   async createPost(authorId: string, input: unknown) {
@@ -56,6 +61,19 @@ export const feedService = {
     }
 
     const liked = await likeRepository.toggle(postId, userId);
+
+    if (liked) {
+      await notificationService.createPostLikedNotification({
+        actorId: userId,
+        postId,
+      });
+    } else {
+      await notificationService.removePostLikedNotification({
+        actorId: userId,
+        postId,
+      });
+    }
+
     const likeCount = await likeRepository.countByPostId(postId);
 
     return {

@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { MessageCircle } from "lucide-react";
 
 import { toggleLikeAction } from "@/lib/actions/posts";
 import type { FeedPostView } from "@/lib/types/domain";
+import { CommentPreview } from "@/components/comments/comment-preview";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DeletePostButton } from "@/components/feed/delete-post-button";
 import { LikeButton } from "@/components/feed/like-button";
+import { Button } from "@/components/ui/button";
 
 function initials(name: string) {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -15,9 +18,10 @@ function initials(name: string) {
 
 type PostCardProps = {
   post: FeedPostView;
+  showCommentPreview?: boolean;
 };
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, showCommentPreview = true }: PostCardProps) {
   return (
     <article className="group border-b px-4 py-4 transition-colors hover:bg-muted/40 sm:px-6">
       <div className="flex items-start justify-between gap-3">
@@ -49,11 +53,24 @@ export function PostCard({ post }: PostCardProps) {
 
       <p className="mt-3 whitespace-pre-line break-words text-sm leading-6">{post.content}</p>
 
+      {showCommentPreview ? (
+        <CommentPreview postId={post.id} commentCount={post.commentCount} comments={post.commentPreview} />
+      ) : null}
+
       <div className="mt-2">
-        <form action={toggleLikeAction}>
-          <input type="hidden" name="postId" value={post.id} />
-          <LikeButton likedByMe={post.likedByMe} likeCount={post.likeCount} />
-        </form>
+        <div className="flex items-center gap-1">
+          <form action={toggleLikeAction}>
+            <input type="hidden" name="postId" value={post.id} />
+            <LikeButton likedByMe={post.likedByMe} likeCount={post.likeCount} />
+          </form>
+
+          <Button asChild variant="ghost" size="sm" className="h-8 rounded-full px-2 text-muted-foreground">
+            <Link href={`/post/${post.id}`} aria-label="Abrir comentarios">
+              <MessageCircle className="size-4" />
+              <span className="tabular-nums">{post.commentCount}</span>
+            </Link>
+          </Button>
+        </div>
       </div>
     </article>
   );

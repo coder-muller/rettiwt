@@ -47,6 +47,7 @@ export async function deletePostAction(formData: FormData) {
   }
 
   revalidatePath("/feed");
+  revalidatePath(`/post/${parsed.data.postId}`);
 }
 
 export async function toggleLikeAction(formData: FormData) {
@@ -62,4 +63,5 @@ export async function toggleLikeAction(formData: FormData) {
   await feedService.toggleLike(parsed.data.postId, session.user.id);
 
   revalidatePath("/feed");
+  revalidatePath(`/post/${parsed.data.postId}`);
 }
