@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth/client";
+import { checkPasswordCompromisedWithApi } from "@/lib/security/password-leak-client";
 import { signUpSchema } from "@/lib/validation/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,9 +22,13 @@ type SignUpFormValues = {
   password: string;
 };
 
+type PasswordRiskState = "idle" | "checking" | "compromised" | "safe" | "unavailable";
+
 export function RegisterForm() {
   const router = useRouter();
   const [usernameState, setUsernameState] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [passwordRisk, setPasswordRisk] = useState<PasswordRiskState>("idle");
+  const [leakCount, setLeakCount] = useState<number | null>(null);
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -71,6 +76,10 @@ export function RegisterForm() {
       password: values.password,
     };
 
+    setPasswordRisk("checking");
+    setLeakCount(null);
+    const riskPromise = checkPasswordCompromisedWithApi(payload.password);
+
     const response = await authClient.signUp.email({
       name: payload.name,
       username: payload.username,
@@ -80,6 +89,16 @@ export function RegisterForm() {
     });
 
     if (response.error) {
+      const riskResult = await riskPromise;
+      if (riskResult.checkFailed) {
+        setPasswordRisk("unavailable");
+      } else if (riskResult.compromised) {
+        setPasswordRisk("compromised");
+        setLeakCount(riskResult.count ?? null);
+      } else {
+        setPasswordRisk("safe");
+      }
+
       const message = response.error.message ?? "Falha ao criar conta.";
 
       if (message.toLowerCase().includes("username")) {
@@ -92,7 +111,18 @@ export function RegisterForm() {
       return;
     }
 
-    router.replace("/feed");
+    const riskResult = await riskPromise;
+    if (riskResult.checkFailed) {
+      setPasswordRisk("unavailable");
+    } else if (riskResult.compromised) {
+      setPasswordRisk("compromised");
+      setLeakCount(riskResult.count ?? null);
+    } else {
+      setPasswordRisk("safe");
+    }
+
+    const feedPath = riskResult.compromised ? "/feed?security=pwned-password" : "/feed";
+    router.replace(feedPath);
     router.refresh();
   }
 
@@ -205,9 +235,27 @@ export function RegisterForm() {
                       placeholder="••••••••"
                       disabled={isSubmitting}
                       {...field}
+                      onChange={(event) => {
+                        field.onChange(event);
+                        setPasswordRisk("idle");
+                        setLeakCount(null);
+                      }}
                     />
                   </FieldContent>
                   {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                  {!fieldState.error && passwordRisk === "checking" ? (
+                    <FieldDescription>Verificando seguranca da senha...</FieldDescription>
+                  ) : null}
+                  {!fieldState.error && passwordRisk === "compromised" ? (
+                    <FieldDescription>
+                      Essa senha apareceu em vazamentos conhecidos
+                      {typeof leakCount === "number" ? ` (${leakCount} ocorrencias).` : "."} Recomendamos trocar por
+                      uma senha unica.
+                    </FieldDescription>
+                  ) : null}
+                  {!fieldState.error && passwordRisk === "unavailable" ? (
+                    <FieldDescription>Nao foi possivel verificar vazamentos agora.</FieldDescription>
+                  ) : null}
                 </Field>
               )}
             />

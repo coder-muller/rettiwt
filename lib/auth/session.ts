@@ -1,12 +1,55 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { isAdminRole } from "@/lib/auth/roles";
 import { auth } from "@/lib/auth/server";
+import { prisma } from "@/lib/db/prisma";
 
-export async function getSession() {
+function isBanActive(user: {
+  banned?: boolean | null;
+  banExpires?: Date | string | null;
+}) {
+  if (!user.banned) {
+    return false;
+  }
+
+  if (!user.banExpires) {
+    return true;
+  }
+
+  const expiresAt = new Date(user.banExpires);
+
+  if (Number.isNaN(expiresAt.getTime())) {
+    return true;
+  }
+
+  return expiresAt.getTime() > Date.now();
+}
+
+export async function getRawSession() {
   return auth.api.getSession({
     headers: await headers(),
   });
+}
+
+export async function getSession() {
+  const session = await getRawSession();
+
+  if (!session) {
+    return null;
+  }
+
+  if (!isBanActive(session.user)) {
+    return session;
+  }
+
+  await prisma.session.deleteMany({
+    where: {
+      token: session.session.token,
+    },
+  });
+
+  return null;
 }
 
 export async function requireSession() {
@@ -14,6 +57,16 @@ export async function requireSession() {
 
   if (!session) {
     redirect("/login");
+  }
+
+  return session;
+}
+
+export async function requireAdminSession() {
+  const session = await requireSession();
+
+  if (!isAdminRole(session.user.role)) {
+    redirect("/feed");
   }
 
   return session;

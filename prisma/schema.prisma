@@ -21,6 +21,10 @@ model user {
   id                       String                    @id
   name                     String
   email                    String                    @unique
+  role                     String?
+  banned                   Boolean                   @default(false)
+  banReason                String?
+  banExpires               DateTime?
   username                 String                    @unique
   displayUsername          String?
   emailVerified            Boolean                   @default(false)
@@ -41,6 +45,8 @@ model user {
   notificationsSent        notification[]            @relation("NotificationActor")
 
   @@index([name])
+  @@index([role])
+  @@index([banned, banExpires])
 }
 
 model session {
@@ -51,6 +57,7 @@ model session {
   updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
+  impersonatedBy String?
   userId    String
   user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

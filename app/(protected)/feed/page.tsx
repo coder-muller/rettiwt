@@ -1,10 +1,22 @@
+import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
+
 import { CreatePostForm } from "@/components/feed/create-post-form";
 import { PostList } from "@/components/feed/post-list";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth/session";
 import { feedService } from "@/lib/services/feed-service";
 import { profileService } from "@/lib/services/profile-service";
 
-export default async function FeedPage() {
+type FeedPageProps = {
+  searchParams: Promise<{
+    security?: string;
+  }>;
+};
+
+export default async function FeedPage({ searchParams }: FeedPageProps) {
+  const params = await searchParams;
   const session = await requireSession();
 
   const profile = await profileService.ensureProfileForUser({
@@ -27,6 +39,21 @@ export default async function FeedPage() {
           avatar: profile.avatarUrl ?? profile.user.image ?? null,
         }}
       />
+
+      {params.security === "pwned-password" ? (
+        <div className="border-b px-4 py-4 sm:px-6">
+          <Alert>
+            <AlertTriangle />
+            <AlertTitle>Senha comprometida detectada</AlertTitle>
+            <AlertDescription>
+              Sua senha atual apareceu em vazamentos conhecidos. Troque por uma senha unica o quanto antes.
+            </AlertDescription>
+            <Button asChild type="button" variant="ghost" size="sm" className="mt-2 w-fit">
+              <Link href="/feed">Dispensar</Link>
+            </Button>
+          </Alert>
+        </div>
+      ) : null}
 
       <PostList
         posts={posts}

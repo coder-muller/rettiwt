@@ -2,26 +2,35 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Home, Mail, Search, Settings, UserRound } from "lucide-react";
+import { Bell, Home, Mail, Search, Settings, Shield, UserRound } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 type MainNavProps = {
   username: string;
+  isAdmin?: boolean;
   mobile?: boolean;
   unreadNotifications?: number;
   unreadMessages?: number;
 };
 
-const navItems = (username: string) => [
-  { href: "/feed", label: "Feed", icon: Home },
-  { href: "/search", label: "Buscar", icon: Search },
-  { href: "/notifications", label: "Notificacoes", icon: Bell },
-  { href: "/messages", label: "Mensagens", icon: Mail },
-  { href: `/u/${username}`, label: "Perfil", icon: UserRound },
-  { href: "/settings/profile", label: "Config", icon: Settings },
-];
+const navItems = (username: string, isAdmin: boolean) => {
+  const items = [
+    { href: "/feed", label: "Feed", icon: Home },
+    { href: "/search", label: "Buscar", icon: Search },
+    { href: "/notifications", label: "Notificacoes", icon: Bell },
+    { href: "/messages", label: "Mensagens", icon: Mail },
+    { href: `/u/${username}`, label: "Perfil", icon: UserRound },
+    { href: "/settings/profile", label: "Config", icon: Settings },
+  ];
+
+  if (isAdmin) {
+    items.push({ href: "/admin/users", label: "Admin", icon: Shield });
+  }
+
+  return items;
+};
 
 function isItemActive(pathname: string, href: string) {
   if (href === "/messages") {
@@ -37,15 +46,23 @@ function isItemActive(pathname: string, href: string) {
 
 export function MainNav({
   username,
+  isAdmin = false,
   mobile = false,
   unreadNotifications = 0,
   unreadMessages = 0,
 }: MainNavProps) {
   const pathname = usePathname() ?? "";
+  const items = navItems(username, isAdmin);
 
   return (
-    <nav className={cn("grid gap-1", mobile && "grid-cols-6")}>
-      {navItems(username).map((item) => {
+    <nav
+      className={cn(
+        "grid gap-1",
+        mobile && "grid-cols-6",
+        mobile && items.length === 7 && "grid-cols-7",
+      )}
+    >
+      {items.map((item) => {
         const isActive = isItemActive(pathname, item.href);
         const Icon = item.icon;
         const showMessageBadge = item.href === "/messages" && unreadMessages > 0;

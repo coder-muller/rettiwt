@@ -4,12 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { authClient } from "@/lib/auth/client";
+import { checkPasswordCompromisedWithApi } from "@/lib/security/password-leak-client";
 import { signInSchema } from "@/lib/validation/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -17,6 +19,8 @@ type SignInFormValues = {
   identifier: string;
   password: string;
 };
+
+type PasswordRiskState = "idle" | "checking" | "compromised" | "safe" | "unavailable";
 
 function isEmail(value: string) {
   return value.includes("@");
@@ -28,6 +32,8 @@ function isValidEmail(value: string) {
 
 export function LoginForm() {
   const router = useRouter();
+  const [passwordRisk, setPasswordRisk] = useState<PasswordRiskState>("idle");
+  const [leakCount, setLeakCount] = useState<number | null>(null);
 
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -43,10 +49,16 @@ export function LoginForm() {
     const identifier = values.identifier.trim();
     const password = values.password;
 
+    setPasswordRisk("checking");
+    setLeakCount(null);
+
+    const riskPromise = checkPasswordCompromisedWithApi(password);
+
     if (isEmail(identifier) && !isValidEmail(identifier)) {
       form.setError("identifier", {
         message: "Informe um e-mail valido ou username.",
       });
+      setPasswordRisk("idle");
       return;
     }
 
@@ -66,10 +78,32 @@ export function LoginForm() {
       form.setError("root", {
         message: response.error.message ?? "Falha ao entrar. Verifique suas credenciais.",
       });
+      const riskResult = await riskPromise;
+
+      if (riskResult.checkFailed) {
+        setPasswordRisk("unavailable");
+      } else if (riskResult.compromised) {
+        setPasswordRisk("compromised");
+        setLeakCount(riskResult.count ?? null);
+      } else {
+        setPasswordRisk("safe");
+      }
       return;
     }
 
-    router.replace("/feed");
+    const riskResult = await riskPromise;
+
+    if (riskResult.checkFailed) {
+      setPasswordRisk("unavailable");
+    } else if (riskResult.compromised) {
+      setPasswordRisk("compromised");
+      setLeakCount(riskResult.count ?? null);
+    } else {
+      setPasswordRisk("safe");
+    }
+
+    const feedPath = riskResult.compromised ? "/feed?security=pwned-password" : "/feed";
+    router.replace(feedPath);
     router.refresh();
   }
 
@@ -122,9 +156,27 @@ export function LoginForm() {
                       disabled={isSubmitting}
                       placeholder="••••••••"
                       {...field}
+                      onChange={(event) => {
+                        field.onChange(event);
+                        setPasswordRisk("idle");
+                        setLeakCount(null);
+                      }}
                     />
                   </FieldContent>
                   {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                  {!fieldState.error && passwordRisk === "checking" ? (
+                    <FieldDescription>Verificando seguranca da senha...</FieldDescription>
+                  ) : null}
+                  {!fieldState.error && passwordRisk === "compromised" ? (
+                    <FieldDescription>
+                      Essa senha apareceu em vazamentos conhecidos
+                      {typeof leakCount === "number" ? ` (${leakCount} ocorrencias).` : "."} Recomendamos trocar por
+                      uma senha unica.
+                    </FieldDescription>
+                  ) : null}
+                  {!fieldState.error && passwordRisk === "unavailable" ? (
+                    <FieldDescription>Nao foi possivel verificar vazamentos agora.</FieldDescription>
+                  ) : null}
                 </Field>
               )}
             />

@@ -105,3 +105,16 @@ export type NotificationView = {
   postId: string | null;
   commentId: string | null;
 };
+
+export type AdminUserListItem = {
+  id: string;
+  name: string;
+  email: string;
+  username: string;
+  role: string;
+  banned: boolean;
+  banReason: string | null;
+  banExpires: Date | null;
+  createdAt: Date;
+  avatar: string | null;
+};

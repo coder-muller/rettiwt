@@ -17,12 +17,13 @@ type ProtectedShellProps = {
   username: string;
   userName: string;
   userAvatar: string | null;
+  isAdmin: boolean;
   unreadNotifications: number;
   unreadMessages: number;
   children: React.ReactNode;
 };
 
-function RightRail() {
+function RightRail({ isAdmin }: { isAdmin: boolean }) {
   return (
     <aside className="hidden xl:block">
       <div className="sticky top-0 space-y-4 p-4">
@@ -38,6 +39,11 @@ function RightRail() {
             <Link href="/messages" className="text-muted-foreground hover:text-foreground">
               Abrir mensagens
             </Link>
+            {isAdmin ? (
+              <Link href="/admin/users" className="text-muted-foreground hover:text-foreground">
+                Painel admin
+              </Link>
+            ) : null}
           </div>
         </section>
       </div>
@@ -49,6 +55,7 @@ export function ProtectedShell({
   username,
   userName,
   userAvatar,
+  isAdmin,
   unreadNotifications,
   unreadMessages,
   children,
@@ -73,6 +80,7 @@ export function ProtectedShell({
 
             <MainNav
               username={username}
+              isAdmin={isAdmin}
               unreadNotifications={unreadNotifications}
               unreadMessages={unreadMessages}
             />
@@ -108,6 +116,7 @@ export function ProtectedShell({
           <div className="fixed inset-x-0 bottom-0 border-t bg-background/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur lg:hidden">
             <MainNav
               username={username}
+              isAdmin={isAdmin}
               mobile
               unreadNotifications={unreadNotifications}
               unreadMessages={unreadMessages}
@@ -115,7 +124,7 @@ export function ProtectedShell({
           </div>
         </div>
 
-        {!isMessagesRoute ? <RightRail /> : null}
+        {!isMessagesRoute ? <RightRail isAdmin={isAdmin} /> : null}
       </div>
     </div>
   );
