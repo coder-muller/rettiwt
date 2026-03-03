@@ -11,6 +11,7 @@ export default async function NotificationsPage() {
     <section>
       <header className="sticky top-0 z-10 border-b bg-background/90 px-4 py-3 backdrop-blur sm:px-6">
         <h1 className="text-lg font-semibold">Notificacoes</h1>
+        <p className="text-xs text-muted-foreground">Acompanhe curtidas, comentarios, respostas e novos seguidores.</p>
       </header>
 
       <NotificationList notifications={notifications} />

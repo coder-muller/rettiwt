@@ -33,7 +33,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
       <CommentForm postId={postId} />
 
-      <CommentList comments={comments} />
+      <CommentList postId={postId} comments={comments} />
     </section>
   );
 }

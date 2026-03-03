@@ -13,18 +13,33 @@ import { Textarea } from "@/components/ui/textarea";
 
 type CommentFormProps = {
   postId: string;
+  parentCommentId?: string;
+  placeholder?: string;
+  submitLabel?: string;
+  compact?: boolean;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 };
 
 type CommentFormValues = z.infer<typeof createCommentSchema>;
 
 const COMMENT_CHAR_LIMIT = 500;
 
-export function CommentForm({ postId }: CommentFormProps) {
+export function CommentForm({
+  postId,
+  parentCommentId,
+  placeholder = "Escreva seu comentario",
+  submitLabel = "Comentar",
+  compact = false,
+  onSuccess,
+  onCancel,
+}: CommentFormProps) {
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema),
     defaultValues: {
       postId,
       content: "",
+      parentCommentId,
     },
   });
 
@@ -57,13 +72,19 @@ export function CommentForm({ postId }: CommentFormProps) {
     form.reset({
       postId,
       content: "",
+      parentCommentId,
     });
+
+    onSuccess?.();
   }
 
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <form className="border-b px-4 py-4 sm:px-6" onSubmit={form.handleSubmit(onSubmit)}>
+    <form
+      className={compact ? "rounded-xl border bg-muted/20 p-3" : "border-b px-4 py-4 sm:px-6"}
+      onSubmit={form.handleSubmit(onSubmit)}
+    >
       <FieldGroup className="gap-3">
         <Controller
           name="content"
@@ -80,8 +101,8 @@ export function CommentForm({ postId }: CommentFormProps) {
                   aria-invalid={fieldState.invalid}
                   maxLength={COMMENT_CHAR_LIMIT}
                   disabled={isSubmitting}
-                  placeholder="Escreva seu comentario"
-                  className="min-h-20 resize-none"
+                  placeholder={placeholder}
+                  className={compact ? "min-h-16 resize-none text-sm" : "min-h-20 resize-none"}
                 />
               </FieldContent>
               {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
@@ -93,11 +114,18 @@ export function CommentForm({ postId }: CommentFormProps) {
           <FieldError>{form.formState.errors.root.message}</FieldError>
         ) : null}
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <span className="text-xs tabular-nums text-muted-foreground">{remaining} restantes</span>
-          <Button type="submit" disabled={isSubmitting || !content.trim()} className="rounded-full">
-            {isSubmitting ? <Spinner /> : "Comentar"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {onCancel ? (
+              <Button type="button" variant="ghost" size="sm" disabled={isSubmitting} onClick={onCancel}>
+                Cancelar
+              </Button>
+            ) : null}
+            <Button type="submit" disabled={isSubmitting || !content.trim()} className="rounded-full">
+              {isSubmitting ? <Spinner /> : submitLabel}
+            </Button>
+          </div>
         </div>
       </FieldGroup>
     </form>

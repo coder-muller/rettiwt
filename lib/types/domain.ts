@@ -8,6 +8,7 @@ export type SessionUser = {
 export type CommentView = {
   id: string;
   postId: string;
+  parentCommentId?: string | null;
   content: string;
   createdAt: Date;
   deletedAt: Date | null;
@@ -18,6 +19,7 @@ export type CommentView = {
     avatar: string | null;
   };
   canDelete: boolean;
+  replies?: CommentView[];
 };
 
 export type FeedPostView = {
@@ -29,6 +31,7 @@ export type FeedPostView = {
     name: string;
     username: string;
     avatar: string | null;
+    isFollowedByMe: boolean;
   };
   likeCount: number;
   likedByMe: boolean;
@@ -93,7 +96,7 @@ export type MessageView = {
 
 export type NotificationView = {
   id: string;
-  type: "POST_LIKED" | "POST_COMMENTED" | "USER_FOLLOWED";
+  type: "POST_LIKED" | "POST_COMMENTED" | "COMMENT_REPLIED" | "USER_FOLLOWED";
   createdAt: Date;
   readAt: Date | null;
   actor: {

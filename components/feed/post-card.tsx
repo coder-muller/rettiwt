@@ -6,6 +6,7 @@ import { MessageCircle } from "lucide-react";
 import { toggleLikeAction } from "@/lib/actions/posts";
 import type { FeedPostView } from "@/lib/types/domain";
 import { CommentPreview } from "@/components/comments/comment-preview";
+import { FollowToggleButton } from "@/components/follow/follow-toggle-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DeletePostButton } from "@/components/feed/delete-post-button";
 import { LikeButton } from "@/components/feed/like-button";
@@ -19,9 +20,14 @@ function initials(name: string) {
 type PostCardProps = {
   post: FeedPostView;
   showCommentPreview?: boolean;
+  showAuthorFollow?: boolean;
 };
 
-export function PostCard({ post, showCommentPreview = true }: PostCardProps) {
+export function PostCard({
+  post,
+  showCommentPreview = true,
+  showAuthorFollow = false,
+}: PostCardProps) {
   return (
     <article className="group border-b px-4 py-4 transition-colors hover:bg-muted/40 sm:px-6">
       <div className="flex items-start justify-between gap-3">
@@ -37,6 +43,13 @@ export function PostCard({ post, showCommentPreview = true }: PostCardProps) {
         </Link>
 
         <div className="flex items-center gap-1">
+          {showAuthorFollow && !post.isOwner ? (
+            <FollowToggleButton
+              targetUserId={post.author.id}
+              targetUsername={post.author.username}
+              isFollowingByMe={post.author.isFollowedByMe}
+            />
+          ) : null}
           <p className="text-xs text-muted-foreground">
             {formatDistanceToNow(post.createdAt, {
               addSuffix: true,

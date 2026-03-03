@@ -5,9 +5,15 @@ type PostListProps = {
   posts: FeedPostView[];
   emptyTitle: string;
   emptyDescription: string;
+  showAuthorFollow?: boolean;
 };
 
-export function PostList({ posts, emptyTitle, emptyDescription }: PostListProps) {
+export function PostList({
+  posts,
+  emptyTitle,
+  emptyDescription,
+  showAuthorFollow = false,
+}: PostListProps) {
   if (posts.length === 0) {
     return (
       <div className="px-6 py-16 text-center">
@@ -20,7 +26,7 @@ export function PostList({ posts, emptyTitle, emptyDescription }: PostListProps)
   return (
     <div>
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <PostCard key={post.id} post={post} showAuthorFollow={showAuthorFollow} />
       ))}
     </div>
   );

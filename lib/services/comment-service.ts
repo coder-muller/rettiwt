@@ -2,11 +2,45 @@ import { commentRepository } from "@/lib/repositories/comment-repository";
 import { postRepository } from "@/lib/repositories/post-repository";
 import { notificationService } from "@/lib/services/notification-service";
 import { consumeRateLimit } from "@/lib/services/rate-limit-service";
+import type { CommentView } from "@/lib/types/domain";
 import { createCommentSchema } from "@/lib/validation/comment";
 
+function buildCommentTree(comments: CommentView[]) {
+  const byId = new Map<string, CommentView>();
+  const roots: CommentView[] = [];
+
+  for (const comment of comments) {
+    byId.set(comment.id, {
+      ...comment,
+      replies: [],
+    });
+  }
+
+  for (const comment of byId.values()) {
+    const parentId = comment.parentCommentId;
+
+    if (!parentId) {
+      roots.push(comment);
+      continue;
+    }
+
+    const parent = byId.get(parentId);
+
+    if (!parent) {
+      roots.push(comment);
+      continue;
+    }
+
+    parent.replies?.push(comment);
+  }
+
+  return roots;
+}
+
 export const commentService = {
-  listCommentsByPost(postId: string, currentUserId: string) {
-    return commentRepository.listByPostId(postId, currentUserId);
+  async listCommentsByPost(postId: string, currentUserId: string) {
+    const comments = await commentRepository.listByPostId(postId, currentUserId);
+    return buildCommentTree(comments);
   },
 
   async createComment(authorId: string, input: unknown) {
@@ -33,7 +67,7 @@ export const commentService = {
       };
     }
 
-    const post = await postRepository.existsById(parsed.data.postId);
+    const post = await postRepository.findById(parsed.data.postId);
 
     if (!post) {
       return {
@@ -42,17 +76,44 @@ export const commentService = {
       };
     }
 
+    let parentComment: Awaited<ReturnType<typeof commentRepository.findById>> | null = null;
+
+    if (parsed.data.parentCommentId) {
+      parentComment = await commentRepository.findById(parsed.data.parentCommentId);
+
+      if (!parentComment || parentComment.postId !== parsed.data.postId) {
+        return {
+          success: false as const,
+          message: "Comentario pai invalido para este post.",
+        };
+      }
+    }
+
     const comment = await commentRepository.create({
       postId: parsed.data.postId,
       authorId,
       content: parsed.data.content,
+      parentCommentId: parsed.data.parentCommentId,
     });
 
-    await notificationService.createPostCommentedNotification({
-      actorId: authorId,
-      postId: parsed.data.postId,
-      commentId: comment.id,
-    });
+    const shouldNotifyPostOwner = !parentComment || parentComment.authorId !== post.authorId;
+
+    if (shouldNotifyPostOwner) {
+      await notificationService.createPostCommentedNotification({
+        actorId: authorId,
+        postId: parsed.data.postId,
+        commentId: comment.id,
+      });
+    }
+
+    if (parentComment) {
+      await notificationService.createCommentRepliedNotification({
+        actorId: authorId,
+        recipientId: parentComment.authorId,
+        postId: parsed.data.postId,
+        commentId: comment.id,
+      });
+    }
 
     return {
       success: true as const,

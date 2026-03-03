@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CreatePostForm } from "@/components/feed/create-post-form";
 import { PostList } from "@/components/feed/post-list";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth/session";
 import { feedService } from "@/lib/services/feed-service";
@@ -25,7 +26,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     image: session.user.image,
   });
 
-  const posts = await feedService.listFeed(session.user.id);
+  const feed = await feedService.listFeed(session.user.id);
 
   return (
     <section>
@@ -55,10 +56,47 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         </div>
       ) : null}
 
+      <div className="border-b px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">Seguindo</p>
+            <p className="text-xs text-muted-foreground">Posts seus e de quem voce segue.</p>
+          </div>
+          <Badge variant="secondary" className="rounded-full">
+            {feed.followingPosts.length}
+          </Badge>
+        </div>
+      </div>
+
       <PostList
-        posts={posts}
-        emptyTitle="Nenhum post ainda"
-        emptyDescription="Publique o primeiro post para iniciar o feed."
+        posts={feed.followingPosts}
+        emptyTitle="Sua timeline de seguindo esta vazia"
+        emptyDescription="Siga perfis para ver mais posts nesta secao."
+        showAuthorFollow
+      />
+
+      <div className="border-y bg-muted/20 px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">Recomendados</p>
+            <p className="text-xs text-muted-foreground">Descubra novos perfis e posts para seguir.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="rounded-full">
+              {feed.recommendedPosts.length}
+            </Badge>
+            <Button asChild variant="ghost" size="sm" className="rounded-full">
+              <Link href="/search">Buscar pessoas</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <PostList
+        posts={feed.recommendedPosts}
+        emptyTitle="Sem recomendacoes no momento"
+        emptyDescription="Quando houver novos posts de perfis fora da sua rede, eles aparecerao aqui."
+        showAuthorFollow
       />
     </section>
   );

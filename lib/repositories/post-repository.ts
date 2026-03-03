@@ -50,6 +50,7 @@ function mapFeedPost(row: PostRow, currentUserId: string): FeedPostView {
       name: row.author.name,
       username: row.author.username,
       avatar: row.author.profile?.avatarUrl ?? row.author.image ?? null,
+      isFollowedByMe: false,
     },
     likeCount: row.likes.length,
     likedByMe: row.likes.some((like) => like.userId === currentUserId),
@@ -95,7 +96,8 @@ export const postRepository = {
   },
 
   listFeed(currentUserId: string) {
-    const FEED_LIMIT = 100;
+    const FOLLOWING_LIMIT = 80;
+    const RECOMMENDED_LIMIT = 80;
     const postInclude = {
       author: {
         include: {
@@ -135,19 +137,20 @@ export const postRepository = {
       },
     } as const;
 
-    return prisma.follow
-      .findMany({
-        where: {
-          followerId: currentUserId,
-        },
-        select: {
-          followingId: true,
-        },
-      })
-      .then(async (followRows) => {
-        const prioritizedAuthorIds = [currentUserId, ...followRows.map((row) => row.followingId)];
+    return prisma.follow.findMany({
+      where: {
+        followerId: currentUserId,
+      },
+      select: {
+        followingId: true,
+      },
+    }).then(async (followRows) => {
+      const followingIds = followRows.map((row) => row.followingId);
+      const prioritizedAuthorIds = [currentUserId, ...followingIds];
+      const followedAuthorSet = new Set(prioritizedAuthorIds);
 
-        const prioritizedPosts = await prisma.post.findMany({
+      const [followingPostsRows, recommendedPostsRows] = await Promise.all([
+        prisma.post.findMany({
           where: {
             authorId: {
               in: prioritizedAuthorIds,
@@ -157,16 +160,9 @@ export const postRepository = {
             createdAt: "desc",
           },
           include: postInclude,
-          take: FEED_LIMIT,
-        });
-
-        const remaining = FEED_LIMIT - prioritizedPosts.length;
-
-        if (remaining <= 0) {
-          return prioritizedPosts;
-        }
-
-        const otherPosts = await prisma.post.findMany({
+          take: FOLLOWING_LIMIT,
+        }),
+        prisma.post.findMany({
           where: {
             authorId: {
               notIn: prioritizedAuthorIds,
@@ -176,12 +172,33 @@ export const postRepository = {
             createdAt: "desc",
           },
           include: postInclude,
-          take: remaining,
-        });
+          take: RECOMMENDED_LIMIT,
+        }),
+      ]);
 
-        return [...prioritizedPosts, ...otherPosts];
-      })
-      .then((rows) => rows.map((row) => mapFeedPost(row, currentUserId)));
+      return {
+        followingPosts: followingPostsRows.map((row) => {
+          const mapped = mapFeedPost(row, currentUserId);
+          return {
+            ...mapped,
+            author: {
+              ...mapped.author,
+              isFollowedByMe: followedAuthorSet.has(mapped.author.id),
+            },
+          };
+        }),
+        recommendedPosts: recommendedPostsRows.map((row) => {
+          const mapped = mapFeedPost(row, currentUserId);
+          return {
+            ...mapped,
+            author: {
+              ...mapped.author,
+              isFollowedByMe: followedAuthorSet.has(mapped.author.id),
+            },
+          };
+        }),
+      };
+    });
   },
 
   listByAuthorId(authorId: string, currentUserId: string) {
@@ -231,7 +248,18 @@ export const postRepository = {
         },
         take: 100,
       })
-      .then((rows) => rows.map((row) => mapFeedPost(row, currentUserId)));
+      .then((rows) =>
+        rows.map((row) => {
+          const mapped = mapFeedPost(row, currentUserId);
+          return {
+            ...mapped,
+            author: {
+              ...mapped.author,
+              isFollowedByMe: row.authorId === currentUserId,
+            },
+          };
+        }),
+      );
   },
 
   findFeedPostById(postId: string, currentUserId: string) {
@@ -277,7 +305,21 @@ export const postRepository = {
           },
         },
       })
-      .then((row) => (row ? mapFeedPost(row, currentUserId) : null));
+      .then((row) => {
+        if (!row) {
+          return null;
+        }
+
+        const mapped = mapFeedPost(row, currentUserId);
+
+        return {
+          ...mapped,
+          author: {
+            ...mapped.author,
+            isFollowedByMe: row.authorId === currentUserId,
+          },
+        };
+      });
   },
 
   findById(postId: string) {

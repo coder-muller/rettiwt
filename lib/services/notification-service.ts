@@ -5,7 +5,7 @@ import type { NotificationView } from "@/lib/types/domain";
 function mapNotification(
   row: {
     id: string;
-    type: "POST_LIKED" | "POST_COMMENTED" | "USER_FOLLOWED";
+    type: "POST_LIKED" | "POST_COMMENTED" | "COMMENT_REPLIED" | "USER_FOLLOWED";
     createdAt: Date;
     readAt: Date | null;
     postId: string | null;
@@ -69,6 +69,25 @@ export const notificationService = {
       recipientId: post.authorId,
       actorId: input.actorId,
       type: "POST_COMMENTED",
+      postId: input.postId,
+      commentId: input.commentId,
+    });
+  },
+
+  async createCommentRepliedNotification(input: {
+    actorId: string;
+    recipientId: string;
+    postId: string;
+    commentId: string;
+  }) {
+    if (input.actorId === input.recipientId) {
+      return;
+    }
+
+    await notificationRepository.create({
+      recipientId: input.recipientId,
+      actorId: input.actorId,
+      type: "COMMENT_REPLIED",
       postId: input.postId,
       commentId: input.commentId,
     });

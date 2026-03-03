@@ -5,6 +5,7 @@ function mapComment(
   row: {
     id: string;
     postId: string;
+    parentCommentId: string | null;
     content: string;
     createdAt: Date;
     deletedAt: Date | null;
@@ -27,6 +28,7 @@ function mapComment(
   return {
     id: row.id,
     postId: row.postId,
+    parentCommentId: row.parentCommentId,
     content: row.content,
     createdAt: row.createdAt,
     deletedAt: row.deletedAt,
@@ -37,16 +39,23 @@ function mapComment(
       avatar: row.author.profile?.avatarUrl ?? row.author.image ?? null,
     },
     canDelete: !row.deletedAt && (row.authorId === currentUserId || row.post.authorId === currentUserId),
+    replies: [],
   };
 }
 
 export const commentRepository = {
-  create(input: { postId: string; authorId: string; content: string }) {
+  create(input: {
+    postId: string;
+    authorId: string;
+    content: string;
+    parentCommentId?: string;
+  }) {
     return prisma.comment.create({
       data: {
         postId: input.postId,
         authorId: input.authorId,
         content: input.content,
+        parentCommentId: input.parentCommentId,
       },
     });
   },
@@ -87,7 +96,6 @@ export const commentRepository = {
       .findMany({
         where: {
           postId,
-          parentCommentId: null,
         },
         include: {
           author: {
@@ -108,7 +116,7 @@ export const commentRepository = {
         orderBy: {
           createdAt: "asc",
         },
-        take: 200,
+        take: 500,
       })
       .then((rows) => rows.map((row) => mapComment(row, currentUserId)));
   },

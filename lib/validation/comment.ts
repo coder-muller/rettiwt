@@ -14,4 +14,5 @@ export const commentContentSchema = z
 export const createCommentSchema = z.object({
   postId: z.string().min(1),
   content: commentContentSchema,
+  parentCommentId: z.string().min(1).optional(),
 });

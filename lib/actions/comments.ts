@@ -7,7 +7,11 @@ import { requireSession } from "@/lib/auth/session";
 import { commentService } from "@/lib/services/comment-service";
 import { commentIdSchema } from "@/lib/validation/comment";
 
-export async function createCommentAction(input: { postId: string; content: string }): Promise<ActionState> {
+export async function createCommentAction(input: {
+  postId: string;
+  content: string;
+  parentCommentId?: string;
+}): Promise<ActionState> {
   const session = await requireSession();
 
   const result = await commentService.createComment(session.user.id, input);
