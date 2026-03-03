@@ -20,6 +20,32 @@ export const messageRepository = {
     });
   },
 
+  listByConversationAfter(input: { conversationId: string; after?: Date; take?: number }) {
+    return prisma.message.findMany({
+      where: {
+        conversationId: input.conversationId,
+        ...(input.after
+          ? {
+              createdAt: {
+                gt: input.after,
+              },
+            }
+          : {}),
+      },
+      include: {
+        sender: {
+          include: {
+            profile: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      take: input.take ?? 100,
+    });
+  },
+
   create(input: { conversationId: string; senderId: string; content: string }) {
     return prisma.$transaction(async (tx) => {
       const message = await tx.message.create({

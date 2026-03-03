@@ -1,4 +1,4 @@
-import { ConversationList } from "@/components/messages/conversation-list";
+import { LiveConversationList } from "@/components/messages/live-conversation-list";
 import { requireSession } from "@/lib/auth/session";
 import { messageService } from "@/lib/services/message-service";
 
@@ -14,7 +14,7 @@ export default async function MessagesPage() {
           <h1 className="text-[17px] font-extrabold">Mensagens</h1>
         </header>
         <div className="h-[calc(100dvh-4.25rem)] overflow-y-auto">
-          <ConversationList conversations={conversations} />
+          <LiveConversationList initialConversations={conversations} />
         </div>
       </div>
 

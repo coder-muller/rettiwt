@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
-import { ConversationList } from "@/components/messages/conversation-list";
+import { LiveConversationList } from "@/components/messages/live-conversation-list";
 import { ConversationLive } from "@/components/messages/conversation-live";
 import { requireSession } from "@/lib/auth/session";
 import { messageService } from "@/lib/services/message-service";
@@ -33,7 +33,7 @@ export default async function ConversationPage({ params }: ConversationPageProps
           <h1 className="text-lg font-semibold">Mensagens</h1>
         </header>
         <div className="h-[calc(100dvh-4.25rem)] overflow-y-auto">
-          <ConversationList conversations={conversations} activeConversationId={conversationId} />
+          <LiveConversationList initialConversations={conversations} activeConversationId={conversationId} />
         </div>
       </div>
 
@@ -55,7 +55,6 @@ export default async function ConversationPage({ params }: ConversationPageProps
           <ConversationLive
             key={conversationId}
             conversationId={conversationId}
-            currentUserId={session.user.id}
             initialMessages={thread.messages}
           />
         </div>

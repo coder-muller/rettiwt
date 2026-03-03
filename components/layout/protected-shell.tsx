@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { LogoIcon } from "@/components/ui/logo-icon";
 import { MainNav } from "@/components/layout/main-nav";
@@ -64,6 +65,70 @@ export function ProtectedShell({
 }: ProtectedShellProps) {
   const pathname = usePathname() ?? "";
   const isMessagesRoute = pathname === "/messages" || pathname.startsWith("/messages/");
+  const [liveUnreadMessages, setLiveUnreadMessages] = useState(unreadMessages);
+
+  useEffect(() => {
+    setLiveUnreadMessages(unreadMessages);
+  }, [unreadMessages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const intervalForVisibility = () => (document.hidden ? 30000 : 10000);
+
+    const syncUnreadCount = async () => {
+      try {
+        const response = await fetch("/api/messages/unread-count", {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-store",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to sync unread count.");
+        }
+
+        const payload = (await response.json()) as {
+          unreadCount?: number;
+        };
+
+        if (!cancelled && typeof payload.unreadCount === "number") {
+          setLiveUnreadMessages(payload.unreadCount);
+        }
+      } catch {
+        // Silent failure; next polling cycle retries.
+      } finally {
+        if (!cancelled) {
+          timer = setTimeout(() => {
+            void syncUnreadCount();
+          }, intervalForVisibility());
+        }
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        return;
+      }
+
+      void syncUnreadCount();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    void syncUnreadCount();
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -89,7 +154,7 @@ export function ProtectedShell({
               username={username}
               isAdmin={isAdmin}
               unreadNotifications={unreadNotifications}
-              unreadMessages={unreadMessages}
+              unreadMessages={liveUnreadMessages}
             />
 
             <div className="mt-auto">
@@ -130,7 +195,7 @@ export function ProtectedShell({
               isAdmin={isAdmin}
               mobile
               unreadNotifications={unreadNotifications}
-              unreadMessages={unreadMessages}
+              unreadMessages={liveUnreadMessages}
             />
           </div>
         </div>

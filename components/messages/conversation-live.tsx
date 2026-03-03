@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { io } from "socket.io-client";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { markConversationReadAction } from "@/lib/actions/messages";
 import type { MessageView } from "@/lib/types/domain";
@@ -10,107 +9,197 @@ import { MessageThread } from "@/components/messages/message-thread";
 
 type ConversationLiveProps = {
   conversationId: string;
-  currentUserId: string;
   initialMessages: MessageView[];
 };
 
-type SocketMessagePayload = {
-  conversationId: string;
-  message: {
+type MessageDto = {
+  id: string;
+  content: string;
+  createdAt: string;
+  sender: {
     id: string;
-    content: string;
-    createdAt: string;
-    sender: {
-      id: string;
-      username: string;
-      name: string;
-      avatar: string | null;
-    };
+    username: string;
+    name: string;
+    avatar: string | null;
   };
+  isMine: boolean;
 };
 
-function normalizeIncomingMessage(
-  payload: SocketMessagePayload["message"],
-  currentUserId: string,
-): MessageView {
+function mapIncomingMessage(payload: MessageDto): MessageView {
   return {
     id: payload.id,
     content: payload.content,
     createdAt: new Date(payload.createdAt),
     sender: payload.sender,
-    isMine: payload.sender.id === currentUserId,
+    isMine: payload.isMine,
   };
 }
 
-export function ConversationLive({ conversationId, currentUserId, initialMessages }: ConversationLiveProps) {
+function mergeMessages(current: MessageView[], incoming: MessageView[]) {
+  if (!incoming.length) {
+    return current;
+  }
+
+  const knownIds = new Set(current.map((message) => message.id));
+  const next = [...current];
+
+  for (const message of incoming) {
+    if (knownIds.has(message.id)) {
+      continue;
+    }
+
+    knownIds.add(message.id);
+    next.push(message);
+  }
+
+  next.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  return next;
+}
+
+function normalPollInterval() {
+  if (typeof document === "undefined") {
+    return 2000;
+  }
+
+  return document.hidden ? 8000 : 2000;
+}
+
+function failurePollInterval(failureCount: number) {
+  return Math.min(15000, 2000 * 2 ** Math.max(0, failureCount - 1));
+}
+
+export function ConversationLive({ conversationId, initialMessages }: ConversationLiveProps) {
   const [messages, setMessages] = useState<MessageView[]>(initialMessages);
-  const [connected, setConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+
+  const messagesRef = useRef<MessageView[]>(initialMessages);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlightRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const failuresRef = useRef(0);
+  const runPollNowRef = useRef<(() => Promise<void>) | null>(null);
+  const markReadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    let isCancelled = false;
-    const socketBaseUrl =
-      process.env.NEXT_PUBLIC_RETTIWT_SOCKET_URL ||
-      `${window.location.protocol}//${window.location.hostname}:${process.env.NEXT_PUBLIC_RETTIWT_SOCKET_PORT ?? "3002"}`;
+    setMessages(initialMessages);
+    messagesRef.current = initialMessages;
+  }, [initialMessages]);
 
-    const socket = io(socketBaseUrl, {
-      path: "/socket.io",
-    });
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
-    const joinRoom = () => {
-      socket.emit("conversation:join", {
-        conversationId,
-      });
+  useEffect(() => {
+    cancelledRef.current = false;
+
+    const scheduleMarkRead = () => {
+      if (markReadDebounceRef.current) {
+        clearTimeout(markReadDebounceRef.current);
+      }
+
+      markReadDebounceRef.current = setTimeout(() => {
+        void markConversationReadAction({ conversationId });
+      }, 600);
     };
 
-    socket.on("connect", () => {
-      if (!isCancelled) {
-        setConnected(true);
-      }
-      joinRoom();
-    });
-
-    socket.on("disconnect", () => {
-      if (!isCancelled) {
-        setConnected(false);
-      }
-    });
-
-    socket.on("message:new", (payload: SocketMessagePayload) => {
-      if (payload.conversationId !== conversationId) {
+    const scheduleNext = (delay: number, fn: () => Promise<void>) => {
+      if (cancelledRef.current) {
         return;
       }
 
-      const nextMessage = normalizeIncomingMessage(payload.message, currentUserId);
+      timerRef.current = setTimeout(() => {
+        void fn();
+      }, delay);
+    };
 
-      setMessages((current) => {
-        if (current.some((message) => message.id === nextMessage.id)) {
-          return current;
+    const syncMessages = async () => {
+      if (cancelledRef.current || inFlightRef.current) {
+        return;
+      }
+
+      inFlightRef.current = true;
+
+      try {
+        const last = messagesRef.current[messagesRef.current.length - 1];
+        const params = new URLSearchParams();
+
+        if (last?.createdAt) {
+          params.set("after", last.createdAt.toISOString());
         }
 
-        return [...current, nextMessage];
-      });
+        const query = params.toString();
+        const url = query
+          ? `/api/messages/conversations/${conversationId}/delta?${query}`
+          : `/api/messages/conversations/${conversationId}/delta`;
 
-      if (!nextMessage.isMine) {
-        void markConversationReadAction({
-          conversationId,
+        const response = await fetch(url, {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-store",
+          },
         });
-      }
-    });
 
-    joinRoom();
+        if (!response.ok) {
+          throw new Error("Failed to poll messages.");
+        }
+
+        const payload = (await response.json()) as { messages?: MessageDto[] };
+        const incomingDtos = Array.isArray(payload.messages) ? payload.messages : [];
+        const incoming = incomingDtos.map(mapIncomingMessage);
+
+        if (incoming.length > 0) {
+          setMessages((current) => mergeMessages(current, incoming));
+
+          if (incoming.some((message) => !message.isMine)) {
+            scheduleMarkRead();
+          }
+        }
+
+        failuresRef.current = 0;
+        setIsReconnecting(false);
+        scheduleNext(normalPollInterval(), syncMessages);
+      } catch {
+        failuresRef.current += 1;
+        setIsReconnecting(true);
+        scheduleNext(failurePollInterval(failuresRef.current), syncMessages);
+      } finally {
+        inFlightRef.current = false;
+      }
+    };
+
+    runPollNowRef.current = syncMessages;
+    void syncMessages();
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        return;
+      }
+
+      void syncMessages();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      isCancelled = true;
-      socket.emit("conversation:leave", {
-        conversationId,
-      });
-      socket.disconnect();
+      cancelledRef.current = true;
+      runPollNowRef.current = null;
+
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      if (markReadDebounceRef.current) {
+        clearTimeout(markReadDebounceRef.current);
+      }
     };
-  }, [conversationId, currentUserId]);
+  }, [conversationId]);
 
   const composerHint = useMemo(
-    () => (connected ? "Conectado em tempo real." : "Reconectando mensagens em tempo real..."),
-    [connected],
+    () => (isReconnecting ? "Reconectando mensagens..." : "Atualizando mensagens automaticamente."),
+    [isReconnecting],
   );
 
   return (
@@ -124,15 +213,13 @@ export function ConversationLive({ conversationId, currentUserId, initialMessage
       <MessageComposer
         conversationId={conversationId}
         onMessageSent={(message) => {
-          const nextMessage = normalizeIncomingMessage(message, currentUserId);
-
-          setMessages((current) => {
-            if (current.some((item) => item.id === nextMessage.id)) {
-              return current;
-            }
-
-            return [...current, nextMessage];
+          const nextMessage = mapIncomingMessage({
+            ...message,
+            createdAt: message.createdAt,
           });
+
+          setMessages((current) => mergeMessages(current, [nextMessage]));
+          void runPollNowRef.current?.();
         }}
       />
     </div>

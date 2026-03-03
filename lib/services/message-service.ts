@@ -1,8 +1,6 @@
 import { conversationRepository } from "@/lib/repositories/conversation-repository";
 import { followRepository } from "@/lib/repositories/follow-repository";
 import { messageRepository } from "@/lib/repositories/message-repository";
-import { publishConversationMessage } from "@/lib/realtime/publish";
-import { ensureRealtimeServer } from "@/lib/realtime/socket-server";
 import { userRepository } from "@/lib/repositories/user-repository";
 import { consumeRateLimit } from "@/lib/services/rate-limit-service";
 import type { ConversationListItem, MessageView } from "@/lib/types/domain";
@@ -118,8 +116,6 @@ export const messageService = {
   },
 
   async listConversationsForUser(userId: string) {
-    ensureRealtimeServer();
-
     const rows = await conversationRepository.listByUserId(userId);
 
     const items = await Promise.all(
@@ -165,8 +161,6 @@ export const messageService = {
   },
 
   async getConversationThread(userId: string, conversationId: string) {
-    ensureRealtimeServer();
-
     const parsed = conversationIdSchema.safeParse({ conversationId });
 
     if (!parsed.success) {
@@ -206,8 +200,6 @@ export const messageService = {
   },
 
   async sendMessage(userId: string, input: unknown) {
-    ensureRealtimeServer();
-
     const messageLimit = consumeRateLimit({
       key: `dm-message:${userId}`,
       limit: 120,
@@ -257,26 +249,33 @@ export const messageService = {
 
     const mappedMessage = mapMessage(message, userId);
 
-    publishConversationMessage({
-      conversationId: parsed.data.conversationId,
-      message: {
-        id: mappedMessage.id,
-        content: mappedMessage.content,
-        createdAt: mappedMessage.createdAt.toISOString(),
-        sender: {
-          id: mappedMessage.sender.id,
-          username: mappedMessage.sender.username,
-          name: mappedMessage.sender.name,
-          avatar: mappedMessage.sender.avatar,
-        },
-      },
-    });
-
     return {
       success: true as const,
       conversationId: parsed.data.conversationId,
       message: mappedMessage,
     };
+  },
+
+  async listConversationMessagesAfter(userId: string, conversationId: string, after?: Date) {
+    const parsed = conversationIdSchema.safeParse({ conversationId });
+
+    if (!parsed.success) {
+      return null;
+    }
+
+    const participant = await conversationRepository.getParticipantRecord(parsed.data.conversationId, userId);
+
+    if (!participant) {
+      return null;
+    }
+
+    const rows = await messageRepository.listByConversationAfter({
+      conversationId: parsed.data.conversationId,
+      after,
+      take: 100,
+    });
+
+    return rows.map((message) => mapMessage(message, userId));
   },
 
   async markConversationRead(userId: string, conversationId: string) {
