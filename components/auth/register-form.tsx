@@ -113,8 +113,8 @@ export function RegisterForm() {
       setPasswordRisk("safe");
     }
 
-    const feedPath = riskResult.compromised ? "/feed?security=pwned-password" : "/feed";
-    router.replace(feedPath);
+    const verificationPath = `/verify-email?email=${encodeURIComponent(payload.email)}`;
+    router.replace(verificationPath);
     router.refresh();
   }
 

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth/client";
@@ -31,6 +31,7 @@ function isValidEmail(value: string) {
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [passwordRisk, setPasswordRisk] = useState<PasswordRiskState>("idle");
   const [leakCount, setLeakCount] = useState<number | null>(null);
 
@@ -94,12 +95,21 @@ export function LoginForm() {
       setPasswordRisk("safe");
     }
 
+    const user = response.data?.user;
+
+    if (user && !user.emailVerified) {
+      router.replace(`/verify-email?email=${encodeURIComponent(user.email)}`);
+      router.refresh();
+      return;
+    }
+
     const feedPath = riskResult.compromised ? "/feed?security=pwned-password" : "/feed";
     router.replace(feedPath);
     router.refresh();
   }
 
   const isSubmitting = form.formState.isSubmitting;
+  const hasResetSuccess = searchParams.get("reset") === "success";
 
   return (
     <div className="space-y-6">
@@ -109,6 +119,10 @@ export function LoginForm() {
 
       <form className="w-full" onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup className="gap-5">
+          {hasResetSuccess ? (
+            <FieldDescription>Sua senha foi redefinida. Voce ja pode entrar com a nova senha.</FieldDescription>
+          ) : null}
+
           <Controller
             name="identifier"
             control={form.control}
@@ -169,6 +183,12 @@ export function LoginForm() {
               </Field>
             )}
           />
+
+          <div className="-mt-2 text-right">
+            <Link className="text-[14px] font-semibold text-foreground hover:underline" href="/forgot-password">
+              Esqueci minha senha
+            </Link>
+          </div>
 
           {form.formState.errors.root?.message ? (
             <FieldError>{form.formState.errors.root.message}</FieldError>

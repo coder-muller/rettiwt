@@ -7,7 +7,11 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   const session = await getSession();
 
   if (session) {
-    redirect("/feed");
+    if (session.user.emailVerified) {
+      redirect("/feed");
+    }
+
+    redirect(`/verify-email?email=${encodeURIComponent(session.user.email)}`);
   }
 
   return (

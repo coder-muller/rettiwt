@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { getSession } from "@/lib/auth/session";
+import { getVerifiedSession } from "@/lib/auth/session";
 import { searchService } from "@/lib/services/search-service";
 
 export async function GET(request: Request) {
-  const session = await getSession();
+  const session = await getVerifiedSession();
 
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTheme } from "next-themes";
-import { LogOut, Moon, MoreHorizontal, Settings, Shield, Sun, User } from "lucide-react";
+import { KeyRound, LogOut, Moon, MoreHorizontal, Settings, Shield, Sun, User } from "lucide-react";
 
 import { authClient } from "@/lib/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -102,6 +102,12 @@ export function UserMenu({
           <Link href="/settings/profile">
             <Settings className="size-4" />
             Configuracoes
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/security">
+            <KeyRound className="size-4" />
+            Seguranca
           </Link>
         </DropdownMenuItem>
         {isAdmin ? (

@@ -7,13 +7,18 @@ MVP de rede social de texto inspirado em Twitter/X, construído com Next.js App 
 - Next.js 16 + React 19 + TypeScript
 - Tailwind CSS + shadcn/ui
 - Better Auth (email/senha)
+- Better Auth (email/senha + Email OTP)
 - Prisma ORM
 - PostgreSQL
+- Resend (envio de e-mails transacionais)
 
 ## Funcionalidades do MVP
 
 - Cadastro, login e logout
 - Sessão persistida
+- Verificacao de e-mail por OTP
+- Esqueci minha senha com OTP por e-mail
+- Troca de senha em `/settings/security`
 - Feed cronológico de posts de texto
 - Criação e exclusão do próprio post
 - Curtir/descurtir posts
@@ -39,6 +44,8 @@ bun install
 ```bash
 cp .env.example .env
 ```
+
+Preencha tambem as variaveis do Resend (`RESEND_API_KEY`, `RESEND_FROM` e opcionalmente `RESEND_REPLY_TO`).
 
 3. Garanta que o banco exista localmente:
 

@@ -48,6 +48,10 @@ function isItemActive(pathname: string, href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  if (href === "/settings/profile") {
+    return pathname === "/settings/profile" || pathname === "/settings/security";
+  }
+
   return pathname === href;
 }
 

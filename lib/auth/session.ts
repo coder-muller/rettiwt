@@ -62,6 +62,30 @@ export async function requireSession() {
   return session;
 }
 
+export async function getVerifiedSession() {
+  const session = await getSession();
+
+  if (!session) {
+    return null;
+  }
+
+  if (!session.user.emailVerified) {
+    return null;
+  }
+
+  return session;
+}
+
+export async function requireVerifiedSession() {
+  const session = await requireSession();
+
+  if (!session.user.emailVerified) {
+    redirect(`/verify-email?email=${encodeURIComponent(session.user.email)}`);
+  }
+
+  return session;
+}
+
 export async function requireAdminSession() {
   const session = await requireSession();
 

@@ -106,7 +106,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         </div>
 
         {profile.bio ? (
-          <p className="mt-3 whitespace-pre-line break-words text-[15px] leading-5">
+          <p className="mt-3 whitespace-pre-line wrap-break-word text-[15px] leading-5">
             {profile.bio}
           </p>
         ) : null}
