@@ -5,7 +5,7 @@ import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Controller, useForm } from "react-hook-form";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import { authClient } from "@/lib/auth/client";
@@ -29,6 +29,7 @@ export function VerifyEmailForm({ initialEmail = "" }: VerifyEmailFormProps) {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const hasAutoSentRef = useRef(false);
 
   const form = useForm<VerifyEmailFormValues>({
     resolver: zodResolver(verifyEmailOtpSchema),
@@ -49,6 +50,33 @@ export function VerifyEmailForm({ initialEmail = "" }: VerifyEmailFormProps) {
 
     return () => clearInterval(timer);
   }, [resendCooldown]);
+
+  useEffect(() => {
+    const normalizedEmail = form.getValues("email").trim().toLowerCase();
+
+    if (!normalizedEmail || hasAutoSentRef.current) {
+      return;
+    }
+
+    hasAutoSentRef.current = true;
+
+    authClient.emailOtp
+      .sendVerificationOtp({
+        email: normalizedEmail,
+        type: "email-verification",
+      })
+      .then((response) => {
+        if (response.error) {
+          form.setError("root", {
+            message: response.error.message ?? "Nao foi possivel enviar o codigo de verificacao.",
+          });
+          return;
+        }
+
+        setInfoMessage("Enviamos um codigo de verificacao para seu e-mail.");
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      });
+  }, [form]);
 
   async function onSubmit(values: VerifyEmailFormValues) {
     form.clearErrors("root");
@@ -131,11 +159,13 @@ export function VerifyEmailForm({ initialEmail = "" }: VerifyEmailFormProps) {
                     type="email"
                     autoComplete="email"
                     aria-invalid={fieldState.invalid}
-                    disabled={isSubmitting || isResending}
+                    disabled
+                    readOnly
                     placeholder="voce@exemplo.com"
                     {...field}
                   />
                 </FieldContent>
+                <FieldDescription>O e-mail de verificacao nao pode ser alterado nesta etapa.</FieldDescription>
                 {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
               </Field>
             )}

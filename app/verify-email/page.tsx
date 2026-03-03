@@ -21,6 +21,10 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
   const emailFromQuery = params.email?.trim().toLowerCase() ?? "";
   const initialEmail = session?.user.email ?? emailFromQuery;
 
+  if (!initialEmail) {
+    redirect("/login");
+  }
+
   return (
     <main className="min-h-dvh bg-background">
       <div className="mx-auto grid min-h-dvh w-full max-w-[1100px] grid-cols-1 lg:grid-cols-2">
