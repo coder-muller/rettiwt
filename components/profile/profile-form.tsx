@@ -7,7 +7,6 @@ import { Controller, useForm } from "react-hook-form";
 import { updateProfileAction } from "@/lib/actions/profile";
 import { updateProfileSchema } from "@/lib/validation/profile";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -76,106 +75,115 @@ export function ProfileForm({ initialValues }: ProfileFormProps) {
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <Card className="border-0 shadow-none">
-      <CardHeader className="px-4 sm:px-6">
-        <CardTitle className="text-xl">Editar perfil</CardTitle>
-      </CardHeader>
+    <div className="px-4 py-4">
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <CardContent className="space-y-5 px-4 sm:px-6">
-          <FieldGroup className="gap-4">
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Nome</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id={field.name}
-                      aria-invalid={fieldState.invalid}
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FieldContent>
-                  {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
-                </Field>
-              )}
-            />
+        <FieldGroup className="gap-5">
+          <Controller
+            name="name"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Nome</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isSubmitting}
+                    {...field}
+                  />
+                </FieldContent>
+                {fieldState.error ? (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                ) : null}
+              </Field>
+            )}
+          />
 
-            <Controller
-              name="username"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Username</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id={field.name}
-                      aria-invalid={fieldState.invalid}
-                      autoComplete="username"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FieldContent>
-                  <FieldDescription>Use letras, numeros, underscore e ponto.</FieldDescription>
-                  {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
-                </Field>
-              )}
-            />
+          <Controller
+            name="username"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Username</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    autoComplete="username"
+                    disabled={isSubmitting}
+                    {...field}
+                  />
+                </FieldContent>
+                <FieldDescription>
+                  Use letras, numeros, underscore e ponto.
+                </FieldDescription>
+                {fieldState.error ? (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                ) : null}
+              </Field>
+            )}
+          />
 
-            <Controller
-              name="bio"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Bio</FieldLabel>
-                  <FieldContent>
-                    <Textarea
-                      id={field.name}
-                      className="min-h-24 resize-none"
-                      maxLength={160}
-                      aria-invalid={fieldState.invalid}
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FieldContent>
-                  {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
-                </Field>
-              )}
-            />
+          <Controller
+            name="bio"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Bio</FieldLabel>
+                <FieldContent>
+                  <Textarea
+                    id={field.name}
+                    className="min-h-24 resize-none"
+                    maxLength={160}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isSubmitting}
+                    {...field}
+                  />
+                </FieldContent>
+                {fieldState.error ? (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                ) : null}
+              </Field>
+            )}
+          />
 
-            <Controller
-              name="avatarUrl"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Avatar URL</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id={field.name}
-                      type="url"
-                      aria-invalid={fieldState.invalid}
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FieldContent>
-                  {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
-                </Field>
-              )}
-            />
+          <Controller
+            name="avatarUrl"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Avatar URL</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id={field.name}
+                    type="url"
+                    aria-invalid={fieldState.invalid}
+                    disabled={isSubmitting}
+                    {...field}
+                  />
+                </FieldContent>
+                {fieldState.error ? (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                ) : null}
+              </Field>
+            )}
+          />
 
-            {form.formState.errors.root?.message ? (
-              <FieldError>{form.formState.errors.root.message}</FieldError>
-            ) : null}
-          </FieldGroup>
-        </CardContent>
+          {form.formState.errors.root?.message ? (
+            <FieldError>{form.formState.errors.root.message}</FieldError>
+          ) : null}
 
-        <CardFooter className="justify-end border-t px-4 pt-4 sm:px-6">
-          <Button type="submit" disabled={isSubmitting} className="min-w-40">
-            {isSubmitting ? <Spinner /> : "Salvar alteracoes"}
-          </Button>
-        </CardFooter>
+          <div className="flex justify-end border-t pt-4">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="min-w-[140px] rounded-full font-bold"
+            >
+              {isSubmitting ? <Spinner /> : "Salvar"}
+            </Button>
+          </div>
+        </FieldGroup>
       </form>
-    </Card>
+    </div>
   );
 }

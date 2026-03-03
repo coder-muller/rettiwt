@@ -42,7 +42,7 @@ export function FollowToggleButton({
       type="button"
       variant={isFollowing ? "outline" : "default"}
       size="sm"
-      className="rounded-full"
+      className="min-w-[90px] rounded-full font-bold"
       disabled={isPending}
       onClick={onClick}
     >

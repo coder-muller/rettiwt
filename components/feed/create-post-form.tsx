@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type CreatePostFormProps = {
   currentUser: {
@@ -26,15 +27,16 @@ const POST_CHAR_LIMIT = 280;
 
 function initials(name: string) {
   const parts = name.trim().split(" ").filter(Boolean);
-  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 export function CreatePostForm({ currentUser }: CreatePostFormProps) {
   const form = useForm<CreatePostValues>({
     resolver: zodResolver(createPostSchema),
-    defaultValues: {
-      content: "",
-    },
+    defaultValues: { content: "" },
   });
 
   const content = useWatch({
@@ -43,6 +45,7 @@ export function CreatePostForm({ currentUser }: CreatePostFormProps) {
     defaultValue: "",
   });
   const remaining = POST_CHAR_LIMIT - content.length;
+  const isOverLimit = remaining < 0;
 
   async function onSubmit(values: CreatePostValues) {
     form.clearErrors();
@@ -54,15 +57,11 @@ export function CreatePostForm({ currentUser }: CreatePostFormProps) {
     if (result.status === "error") {
       const contentError = result.fieldErrors?.content?.[0];
       if (contentError) {
-        form.setError("content", {
-          message: contentError,
-        });
+        form.setError("content", { message: contentError });
       }
 
       if (result.message && !contentError) {
-        form.setError("root", {
-          message: result.message,
-        });
+        form.setError("root", { message: result.message });
       }
       return;
     }
@@ -73,15 +72,15 @@ export function CreatePostForm({ currentUser }: CreatePostFormProps) {
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <form className="border-b px-4 py-4 sm:px-6" onSubmit={form.handleSubmit(onSubmit)}>
-      <div className="flex items-start gap-3">
-        <Avatar className="size-10 border">
+    <form className="border-b px-4 py-3" onSubmit={form.handleSubmit(onSubmit)}>
+      <div className="flex gap-3">
+        <Avatar className="size-10 shrink-0">
           <AvatarImage alt={currentUser.name} src={currentUser.avatar ?? undefined} />
           <AvatarFallback>{initials(currentUser.name)}</AvatarFallback>
         </Avatar>
 
         <div className="min-w-0 flex-1">
-          <FieldGroup className="gap-3">
+          <FieldGroup className="gap-0">
             <Controller
               name="content"
               control={form.control}
@@ -95,12 +94,14 @@ export function CreatePostForm({ currentUser }: CreatePostFormProps) {
                       {...field}
                       aria-invalid={fieldState.invalid}
                       placeholder="No que voce esta pensando?"
-                      maxLength={POST_CHAR_LIMIT}
+                      maxLength={POST_CHAR_LIMIT + 10}
                       disabled={isSubmitting}
-                      className="min-h-24 resize-none border-0 px-0 text-base shadow-none focus-visible:ring-0"
+                      className="min-h-[56px] resize-none border-0 px-0 text-xl shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0"
                     />
                   </FieldContent>
-                  {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                  {fieldState.error ? (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  ) : null}
                 </Field>
               )}
             />
@@ -109,9 +110,26 @@ export function CreatePostForm({ currentUser }: CreatePostFormProps) {
               <FieldError>{form.formState.errors.root.message}</FieldError>
             ) : null}
 
-            <div className="flex items-center justify-between border-t pt-3">
-              <span className="text-xs tabular-nums text-muted-foreground">{remaining} restantes</span>
-              <Button type="submit" disabled={isSubmitting || !content.trim()} className="min-w-24 rounded-full">
+            <div className="flex items-center justify-end gap-3 border-t pt-3">
+              {content.length > 0 ? (
+                <span
+                  className={cn(
+                    "text-[13px] tabular-nums",
+                    isOverLimit
+                      ? "text-destructive"
+                      : remaining <= 20
+                        ? "text-amber-500"
+                        : "text-muted-foreground",
+                  )}
+                >
+                  {remaining}
+                </span>
+              ) : null}
+              <Button
+                type="submit"
+                disabled={isSubmitting || !content.trim() || isOverLimit}
+                className="min-w-[90px] rounded-full font-bold"
+              >
                 {isSubmitting ? <Spinner /> : "Publicar"}
               </Button>
             </div>

@@ -21,8 +21,8 @@ export default async function ProfileSettingsPage() {
 
   return (
     <section>
-      <header className="sticky top-0 z-10 border-b bg-background/90 px-4 py-3 backdrop-blur sm:px-6">
-        <h1 className="text-lg font-semibold">Configuracoes de perfil</h1>
+      <header className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur">
+        <h1 className="text-[17px] font-extrabold">Configuracoes de perfil</h1>
       </header>
 
       <div className="px-0 py-4">

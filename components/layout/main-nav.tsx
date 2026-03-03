@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { Bell, Home, Mail, Search, Settings, Shield, UserRound } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 type MainNavProps = {
   username: string;
@@ -15,14 +14,14 @@ type MainNavProps = {
   unreadMessages?: number;
 };
 
-const navItems = (username: string, isAdmin: boolean) => {
+const desktopItems = (username: string, isAdmin: boolean) => {
   const items = [
-    { href: "/feed", label: "Feed", icon: Home },
+    { href: "/feed", label: "Inicio", icon: Home },
     { href: "/search", label: "Buscar", icon: Search },
     { href: "/notifications", label: "Notificacoes", icon: Bell },
     { href: "/messages", label: "Mensagens", icon: Mail },
     { href: `/u/${username}`, label: "Perfil", icon: UserRound },
-    { href: "/settings/profile", label: "Config", icon: Settings },
+    { href: "/settings/profile", label: "Configuracoes", icon: Settings },
   ];
 
   if (isAdmin) {
@@ -31,6 +30,14 @@ const navItems = (username: string, isAdmin: boolean) => {
 
   return items;
 };
+
+const mobileItems = (username: string) => [
+  { href: "/feed", label: "Inicio", icon: Home },
+  { href: "/search", label: "Buscar", icon: Search },
+  { href: "/notifications", label: "Notificacoes", icon: Bell },
+  { href: "/messages", label: "Mensagens", icon: Mail },
+  { href: `/u/${username}`, label: "Perfil", icon: UserRound },
+];
 
 function isItemActive(pathname: string, href: string) {
   if (href === "/messages") {
@@ -52,45 +59,70 @@ export function MainNav({
   unreadMessages = 0,
 }: MainNavProps) {
   const pathname = usePathname() ?? "";
-  const items = navItems(username, isAdmin);
+  const items = mobile ? mobileItems(username) : desktopItems(username, isAdmin);
+
+  if (mobile) {
+    return (
+      <nav className="flex items-center justify-around">
+        {items.map((item) => {
+          const isActive = isItemActive(pathname, item.href);
+          const Icon = item.icon;
+          const showBadge =
+            (item.href === "/messages" && unreadMessages > 0) ||
+            (item.href === "/notifications" && unreadNotifications > 0);
+          const badgeCount = item.href === "/messages" ? unreadMessages : unreadNotifications;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="relative flex flex-col items-center justify-center p-2"
+              aria-label={item.label}
+            >
+              <Icon
+                className={cn("size-[26px]", isActive ? "text-foreground" : "text-muted-foreground")}
+                strokeWidth={isActive ? 2.5 : 1.8}
+              />
+              {showBadge ? (
+                <span className="absolute right-0 top-0.5 flex size-[18px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {badgeCount > 9 ? "9+" : badgeCount}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
 
   return (
-    <nav
-      className={cn(
-        "grid gap-1",
-        mobile && "grid-cols-6",
-        mobile && items.length === 7 && "grid-cols-7",
-      )}
-    >
+    <nav className="grid gap-0.5">
       {items.map((item) => {
         const isActive = isItemActive(pathname, item.href);
         const Icon = item.icon;
-        const showMessageBadge = item.href === "/messages" && unreadMessages > 0;
-        const showNotificationBadge = item.href === "/notifications" && unreadNotifications > 0;
+        const showBadge =
+          (item.href === "/messages" && unreadMessages > 0) ||
+          (item.href === "/notifications" && unreadNotifications > 0);
+        const badgeCount = item.href === "/messages" ? unreadMessages : unreadNotifications;
 
         return (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "inline-flex items-center gap-3 rounded-full px-4 py-3 text-base font-medium transition-colors",
-              "hover:bg-accent hover:text-accent-foreground",
-              isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
-              mobile && "justify-center rounded-md px-2 py-2 text-sm",
+              "inline-flex items-center gap-5 rounded-full px-4 py-3 text-xl transition-colors hover:bg-accent",
+              isActive ? "font-bold text-foreground" : "font-normal text-foreground",
             )}
           >
-            <Icon className="size-5" />
-            <span className={cn(mobile && "sr-only")}>{item.label}</span>
-            {showMessageBadge ? (
-              <Badge className="rounded-full px-1.5 py-0 text-[10px]">
-                {unreadMessages > 99 ? "99+" : unreadMessages}
-              </Badge>
-            ) : null}
-            {showNotificationBadge ? (
-              <Badge className="rounded-full px-1.5 py-0 text-[10px]">
-                {unreadNotifications > 99 ? "99+" : unreadNotifications}
-              </Badge>
-            ) : null}
+            <div className="relative">
+              <Icon className="size-[26px]" strokeWidth={isActive ? 2.5 : 1.8} />
+              {showBadge ? (
+                <span className="absolute -right-1 -top-1 flex size-[18px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {badgeCount > 9 ? "9+" : badgeCount}
+                </span>
+              ) : null}
+            </div>
+            <span className="text-[20px]">{item.label}</span>
           </Link>
         );
       })}

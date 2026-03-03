@@ -4,7 +4,6 @@ import Link from "next/link";
 import { CreatePostForm } from "@/components/feed/create-post-form";
 import { PostList } from "@/components/feed/post-list";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth/session";
 import { feedService } from "@/lib/services/feed-service";
@@ -30,8 +29,8 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
   return (
     <section>
-      <header className="sticky top-0 z-10 border-b bg-background/90 px-4 py-3 backdrop-blur sm:px-6">
-        <h1 className="text-lg font-semibold">Para voce</h1>
+      <header className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur">
+        <h1 className="text-[17px] font-extrabold">Inicio</h1>
       </header>
 
       <CreatePostForm
@@ -42,62 +41,64 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       />
 
       {params.security === "pwned-password" ? (
-        <div className="border-b px-4 py-4 sm:px-6">
+        <div className="border-b px-4 py-4">
           <Alert>
             <AlertTriangle />
             <AlertTitle>Senha comprometida detectada</AlertTitle>
             <AlertDescription>
-              Sua senha atual apareceu em vazamentos conhecidos. Troque por uma senha unica o quanto antes.
+              Sua senha atual apareceu em vazamentos conhecidos. Troque por uma
+              senha unica o quanto antes.
             </AlertDescription>
-            <Button asChild type="button" variant="ghost" size="sm" className="mt-2 w-fit">
+            <Button
+              asChild
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-2 w-fit"
+            >
               <Link href="/feed">Dispensar</Link>
             </Button>
           </Alert>
         </div>
       ) : null}
 
-      <div className="border-b px-4 py-3 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">Seguindo</p>
-            <p className="text-xs text-muted-foreground">Posts seus e de quem voce segue.</p>
-          </div>
-          <Badge variant="secondary" className="rounded-full">
-            {feed.followingPosts.length}
-          </Badge>
+      {/* Following tab */}
+      <div className="flex items-center border-b">
+        <div className="flex-1 border-b-2 border-foreground py-3.5 text-center text-[15px] font-bold">
+          Seguindo
         </div>
+        <Link
+          href="/search"
+          className="flex-1 py-3.5 text-center text-[15px] text-muted-foreground transition-colors hover:bg-accent/50"
+        >
+          Recomendados
+        </Link>
       </div>
 
       <PostList
         posts={feed.followingPosts}
-        emptyTitle="Sua timeline de seguindo esta vazia"
-        emptyDescription="Siga perfis para ver mais posts nesta secao."
+        emptyTitle="Sua timeline esta vazia"
+        emptyDescription="Siga perfis para ver posts aqui."
         showAuthorFollow
       />
 
-      <div className="border-y bg-muted/20 px-4 py-3 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">Recomendados</p>
-            <p className="text-xs text-muted-foreground">Descubra novos perfis e posts para seguir.</p>
+      {feed.recommendedPosts.length > 0 ? (
+        <>
+          <div className="border-b border-t-4 border-t-border/50 px-4 py-3">
+            <p className="text-[15px] font-extrabold">Descubra</p>
+            <p className="text-[13px] text-muted-foreground">
+              Posts de perfis que voce ainda nao segue.
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="rounded-full">
-              {feed.recommendedPosts.length}
-            </Badge>
-            <Button asChild variant="ghost" size="sm" className="rounded-full">
-              <Link href="/search">Buscar pessoas</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
 
-      <PostList
-        posts={feed.recommendedPosts}
-        emptyTitle="Sem recomendacoes no momento"
-        emptyDescription="Quando houver novos posts de perfis fora da sua rede, eles aparecerao aqui."
-        showAuthorFollow
-      />
+          <PostList
+            posts={feed.recommendedPosts}
+            emptyTitle="Sem recomendacoes"
+            emptyDescription="Quando houver novos posts, eles aparecerao aqui."
+            showAuthorFollow
+          />
+        </>
+      ) : null}
     </section>
   );
 }

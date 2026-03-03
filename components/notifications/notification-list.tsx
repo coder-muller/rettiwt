@@ -2,15 +2,23 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { differenceInCalendarDays, formatDistanceToNow, isToday, isYesterday } from "date-fns";
+import {
+  differenceInCalendarDays,
+  formatDistanceToNow,
+  isToday,
+  isYesterday,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Heart, MessageCircleReply, UserPlus } from "lucide-react";
 
-import { markAllNotificationsReadAction, markNotificationReadAction } from "@/lib/actions/notifications";
+import {
+  markAllNotificationsReadAction,
+  markNotificationReadAction,
+} from "@/lib/actions/notifications";
 import type { NotificationView } from "@/lib/types/domain";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function initials(name: string) {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -21,55 +29,38 @@ function initials(name: string) {
 }
 
 function getGroupLabel(value: Date) {
-  if (isToday(value)) {
-    return "Hoje";
-  }
-
-  if (isYesterday(value)) {
-    return "Ontem";
-  }
-
+  if (isToday(value)) return "Hoje";
+  if (isYesterday(value)) return "Ontem";
   const diff = differenceInCalendarDays(new Date(), value);
-  if (diff <= 7) {
-    return "Esta semana";
-  }
-
+  if (diff <= 7) return "Esta semana";
   return "Anteriores";
 }
 
 function getNotificationActionLabel(notification: NotificationView) {
-  if (notification.type === "POST_LIKED") {
-    return "curtiu seu post";
-  }
-
-  if (notification.type === "POST_COMMENTED") {
-    return "comentou no seu post";
-  }
-
-  if (notification.type === "COMMENT_REPLIED") {
+  if (notification.type === "POST_LIKED") return "curtiu seu post";
+  if (notification.type === "POST_COMMENTED") return "comentou no seu post";
+  if (notification.type === "COMMENT_REPLIED")
     return "respondeu seu comentario";
-  }
-
   return "comecou a seguir voce";
 }
 
 function getNotificationIcon(notification: NotificationView) {
   if (notification.type === "POST_LIKED") {
-    return <Heart className="size-4" />;
+    return <Heart className="size-5 fill-rose-500 text-rose-500" />;
   }
 
-  if (notification.type === "POST_COMMENTED" || notification.type === "COMMENT_REPLIED") {
-    return <MessageCircleReply className="size-4" />;
+  if (
+    notification.type === "POST_COMMENTED" ||
+    notification.type === "COMMENT_REPLIED"
+  ) {
+    return <MessageCircleReply className="size-5 text-sky-500" />;
   }
 
-  return <UserPlus className="size-4" />;
+  return <UserPlus className="size-5 text-primary" />;
 }
 
 function getNotificationTargetHref(notification: NotificationView) {
-  if (notification.postId) {
-    return `/post/${notification.postId}`;
-  }
-
+  if (notification.postId) return `/post/${notification.postId}`;
   return `/u/${notification.actor.username}`;
 }
 
@@ -81,134 +72,164 @@ type FilterMode = "all" | "unread";
 
 export function NotificationList({ notifications }: NotificationListProps) {
   const [filter, setFilter] = useState<FilterMode>("all");
-  const unreadCount = notifications.filter((notification) => !notification.readAt).length;
+  const unreadCount = notifications.filter((n) => !n.readAt).length;
 
   const filteredNotifications = useMemo(() => {
-    if (filter === "all") {
-      return notifications;
-    }
-
-    return notifications.filter((notification) => !notification.readAt);
+    return filter === "all"
+      ? notifications
+      : notifications.filter((n) => !n.readAt);
   }, [filter, notifications]);
 
   const grouped = useMemo(() => {
     const groups = new Map<string, NotificationView[]>();
-
-    for (const notification of filteredNotifications) {
-      const key = getGroupLabel(notification.createdAt);
+    for (const n of filteredNotifications) {
+      const key = getGroupLabel(n.createdAt);
       const existing = groups.get(key) ?? [];
-      existing.push(notification);
+      existing.push(n);
       groups.set(key, existing);
     }
-
     return Array.from(groups.entries());
   }, [filteredNotifications]);
 
   return (
     <section>
-      <header className="border-b px-4 py-3 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold">Recentes</h2>
-            <Badge variant={unreadCount > 0 ? "default" : "secondary"} className="rounded-full tabular-nums">
-              {unreadCount}
-            </Badge>
-          </div>
+      {/* X-style tab bar */}
+      <div className="flex items-center border-b">
+        <button
+          type="button"
+          className={cn(
+            "flex-1 py-3.5 text-center text-[15px] font-medium transition-colors",
+            filter === "all"
+              ? "border-b-2 border-foreground font-bold text-foreground"
+              : "text-muted-foreground hover:bg-accent/50",
+          )}
+          onClick={() => setFilter("all")}
+        >
+          Todas
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "flex-1 py-3.5 text-center text-[15px] font-medium transition-colors",
+            filter === "unread"
+              ? "border-b-2 border-foreground font-bold text-foreground"
+              : "text-muted-foreground hover:bg-accent/50",
+          )}
+          onClick={() => setFilter("unread")}
+        >
+          Nao lidas{unreadCount > 0 ? ` (${unreadCount})` : ""}
+        </button>
+      </div>
 
-          <div className="flex items-center gap-2">
+      {unreadCount > 0 ? (
+        <div className="border-b px-4 py-2">
+          <form action={markAllNotificationsReadAction}>
             <Button
-              type="button"
               size="sm"
-              variant={filter === "unread" ? "default" : "outline"}
-              className="rounded-full"
-              onClick={() => setFilter("unread")}
+              variant="ghost"
+              className="h-8 text-[13px] text-muted-foreground hover:text-foreground"
             >
-              Nao lidas
+              Marcar tudo como lido
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={filter === "all" ? "default" : "outline"}
-              className="rounded-full"
-              onClick={() => setFilter("all")}
-            >
-              Todas
-            </Button>
-            <form action={markAllNotificationsReadAction}>
-              <Button size="sm" variant="ghost" className="rounded-full" disabled={unreadCount === 0}>
-                Marcar tudo como lido
-              </Button>
-            </form>
-          </div>
+          </form>
         </div>
-      </header>
+      ) : null}
 
       {filteredNotifications.length === 0 ? (
-        <div className="px-4 py-16 text-center sm:px-6">
-          <p className="text-sm font-medium">
-            {filter === "unread" ? "Sem notificacoes nao lidas." : "Sem notificacoes no momento."}
+        <div className="px-4 py-20 text-center">
+          <p className="text-[20px] font-extrabold">
+            {filter === "unread" ? "Tudo em dia!" : "Nada por aqui ainda"}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">Quando houver novas interacoes, elas aparecerao aqui.</p>
+          <p className="mt-1 text-[15px] text-muted-foreground">
+            {filter === "unread"
+              ? "Voce nao tem notificacoes nao lidas."
+              : "Quando houver novas interacoes, elas aparecerao aqui."}
+          </p>
         </div>
       ) : (
         <div>
           {grouped.map(([label, items]) => (
-            <section key={label} className="border-b last:border-b-0">
-              <div className="sticky top-14 z-10 border-b bg-background/95 px-4 py-2 backdrop-blur sm:px-6">
-                <p className="text-xs font-medium text-muted-foreground">{label}</p>
+            <section key={label}>
+              <div className="sticky top-[53px] z-10 border-b bg-background/95 px-4 py-2 backdrop-blur">
+                <p className="text-[13px] font-bold text-muted-foreground">
+                  {label}
+                </p>
               </div>
 
               <div>
                 {items.map((notification) => (
-                  <article key={notification.id} className="border-b px-4 py-4 last:border-b-0 sm:px-6">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="size-10 border">
-                        <AvatarImage alt={notification.actor.name} src={notification.actor.avatar ?? undefined} />
-                        <AvatarFallback>{initials(notification.actor.name)}</AvatarFallback>
-                      </Avatar>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm">
-                              <Link href={`/u/${notification.actor.username}`} className="font-semibold hover:underline">
-                                {notification.actor.name}
-                              </Link>{" "}
-                              <span className="text-muted-foreground">{getNotificationActionLabel(notification)}</span>
-                            </p>
-                            <div className="mt-1 flex items-center gap-2">
-                              <span className="text-muted-foreground">{getNotificationIcon(notification)}</span>
-                              <p className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(notification.createdAt, {
-                                  addSuffix: true,
-                                  locale: ptBR,
-                                })}
-                              </p>
-                              {!notification.readAt ? (
-                                <span
-                                  aria-label="Nao lida"
-                                  className="inline-block size-2 rounded-full bg-foreground"
-                                />
-                              ) : null}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Button asChild variant="outline" size="sm" className="rounded-full">
-                              <Link href={getNotificationTargetHref(notification)}>Abrir</Link>
-                            </Button>
-                            {!notification.readAt ? (
-                              <form action={markNotificationReadAction}>
-                                <input type="hidden" name="notificationId" value={notification.id} />
-                                <Button size="sm" variant="ghost" className="rounded-full">
-                                  Marcar lida
-                                </Button>
-                              </form>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
+                  <article
+                    key={notification.id}
+                    className={cn(
+                      "flex gap-3 border-b px-4 py-3 transition-colors hover:bg-accent/30",
+                      !notification.readAt && "bg-accent/15",
+                    )}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {getNotificationIcon(notification)}
                     </div>
+
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/u/${notification.actor.username}`}
+                        className="inline-block"
+                      >
+                        <Avatar className="size-8">
+                          <AvatarImage
+                            alt={notification.actor.name}
+                            src={notification.actor.avatar ?? undefined}
+                          />
+                          <AvatarFallback>
+                            {initials(notification.actor.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+
+                      <p className="mt-1.5 text-[15px]">
+                        <Link
+                          href={`/u/${notification.actor.username}`}
+                          className="font-bold hover:underline"
+                        >
+                          {notification.actor.name}
+                        </Link>{" "}
+                        <Link
+                          href={getNotificationTargetHref(notification)}
+                          className="text-muted-foreground hover:underline"
+                        >
+                          {getNotificationActionLabel(notification)}
+                        </Link>
+                      </p>
+
+                      <p className="mt-0.5 text-[13px] text-muted-foreground">
+                        {formatDistanceToNow(notification.createdAt, {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
+
+                    {!notification.readAt ? (
+                      <div className="flex shrink-0 items-start gap-2">
+                        <span
+                          aria-label="Nao lida"
+                          className="mt-2 inline-block size-2 rounded-full bg-primary"
+                        />
+                        <form action={markNotificationReadAction}>
+                          <input
+                            type="hidden"
+                            name="notificationId"
+                            value={notification.id}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 rounded-full text-[12px]"
+                          >
+                            Lida
+                          </Button>
+                        </form>
+                      </div>
+                    ) : null}
                   </article>
                 ))}
               </div>

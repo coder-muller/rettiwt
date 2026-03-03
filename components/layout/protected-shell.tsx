@@ -3,15 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { LogoIcon } from "@/components/ui/logo-icon";
 import { MainNav } from "@/components/layout/main-nav";
-import { SignOutButton } from "@/components/layout/sign-out-button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserMenu } from "@/components/layout/user-menu";
 import { cn } from "@/lib/utils";
-
-function initials(name: string) {
-  const parts = name.split(" ").filter(Boolean);
-  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
-}
 
 type ProtectedShellProps = {
   username: string;
@@ -23,29 +18,36 @@ type ProtectedShellProps = {
   children: React.ReactNode;
 };
 
-function RightRail({ isAdmin }: { isAdmin: boolean }) {
+function RightRail() {
   return (
     <aside className="hidden xl:block">
       <div className="sticky top-0 space-y-4 p-4">
         <section className="rounded-2xl border bg-card p-4">
-          <h2 className="text-sm font-semibold">Atalhos</h2>
-          <div className="mt-3 grid gap-2 text-sm">
-            <Link href="/search" className="text-muted-foreground hover:text-foreground">
+          <h2 className="text-[15px] font-extrabold">Descubra</h2>
+          <div className="mt-3 grid gap-3 text-[15px]">
+            <Link
+              href="/search"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
               Buscar pessoas
             </Link>
-            <Link href="/notifications" className="text-muted-foreground hover:text-foreground">
+            <Link
+              href="/notifications"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
               Ver notificacoes
             </Link>
-            <Link href="/messages" className="text-muted-foreground hover:text-foreground">
+            <Link
+              href="/messages"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
               Abrir mensagens
             </Link>
-            {isAdmin ? (
-              <Link href="/admin/users" className="text-muted-foreground hover:text-foreground">
-                Painel admin
-              </Link>
-            ) : null}
           </div>
         </section>
+        <p className="px-1 text-xs text-muted-foreground">
+          Rettiwt &copy; {new Date().getFullYear()}
+        </p>
       </div>
     </aside>
   );
@@ -67,15 +69,20 @@ export function ProtectedShell({
     <div className="min-h-dvh bg-background">
       <div
         className={cn(
-          "mx-auto grid min-h-dvh w-full max-w-[1800px] grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)]",
-          !isMessagesRoute && "xl:grid-cols-[320px_minmax(0,700px)_minmax(320px,1fr)]",
-          isMessagesRoute && "xl:grid-cols-[320px_minmax(0,1fr)]",
+          "mx-auto grid min-h-dvh w-full max-w-[1280px] grid-cols-1",
+          "lg:grid-cols-[275px_minmax(0,1fr)]",
+          !isMessagesRoute && "xl:grid-cols-[275px_minmax(0,600px)_minmax(290px,1fr)]",
+          isMessagesRoute && "xl:grid-cols-[275px_minmax(0,1fr)]",
         )}
       >
+        {/* Desktop sidebar */}
         <aside className="hidden lg:flex lg:justify-end">
-          <div className="sticky top-0 flex h-dvh w-full max-w-[300px] flex-col border-r px-4 py-3">
-            <Link href="/feed" className="mb-4 px-3 text-2xl font-semibold">
-              Rettiwt
+          <div className="sticky top-0 flex h-dvh w-full max-w-[275px] flex-col px-3 py-2">
+            <Link
+              href="/feed"
+              className="mb-2 inline-flex size-[52px] items-center justify-center rounded-full transition-colors hover:bg-accent"
+            >
+              <LogoIcon className="size-7 text-foreground" title="Rettiwt" />
             </Link>
 
             <MainNav
@@ -85,35 +92,39 @@ export function ProtectedShell({
               unreadMessages={unreadMessages}
             />
 
-            <div className="mt-auto rounded-2xl border bg-card p-3">
-              <div className="mb-3 flex items-center gap-3">
-                <Avatar className="size-10 border">
-                  <AvatarImage alt={userName} src={userAvatar ?? undefined} />
-                  <AvatarFallback>{initials(userName)}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{userName}</p>
-                  <p className="truncate text-xs text-muted-foreground">@{username}</p>
-                </div>
-              </div>
-              <SignOutButton />
+            <div className="mt-auto">
+              <UserMenu
+                username={username}
+                userName={userName}
+                userAvatar={userAvatar}
+                isAdmin={isAdmin}
+                variant="full"
+              />
             </div>
           </div>
         </aside>
 
+        {/* Main content */}
         <div className="min-w-0 border-x">
-          <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+          {/* Mobile header */}
+          <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
             <div className="mx-auto flex w-full items-center justify-between">
-              <Link href="/feed" className="text-lg font-semibold">
-                Rettiwt
+              <Link href="/feed" aria-label="Inicio">
+                <LogoIcon className="size-7 text-foreground" title="Rettiwt" />
               </Link>
-              <SignOutButton className="w-auto" />
+              <UserMenu
+                username={username}
+                userName={userName}
+                userAvatar={userAvatar}
+                isAdmin={isAdmin}
+              />
             </div>
           </header>
 
-          <main className="w-full pb-24 lg:pb-0">{children}</main>
+          <main className="w-full pb-20 lg:pb-0">{children}</main>
 
-          <div className="fixed inset-x-0 bottom-0 border-t bg-background/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur lg:hidden">
+          {/* Mobile bottom nav */}
+          <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1 backdrop-blur lg:hidden">
             <MainNav
               username={username}
               isAdmin={isAdmin}
@@ -124,7 +135,7 @@ export function ProtectedShell({
           </div>
         </div>
 
-        {!isMessagesRoute ? <RightRail isAdmin={isAdmin} /> : null}
+        {!isMessagesRoute ? <RightRail /> : null}
       </div>
     </div>
   );

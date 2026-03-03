@@ -55,16 +55,19 @@ export function UserSearchPanel() {
 
   return (
     <section>
-      <div className="border-b px-4 py-4 sm:px-6">
+      <div className="border-b px-4 py-3">
         <FieldGroup className="gap-2">
           <Field>
-            <FieldLabel htmlFor="search-users">Buscar perfis</FieldLabel>
+            <FieldLabel htmlFor="search-users" className="sr-only">
+              Buscar perfis
+            </FieldLabel>
             <FieldContent>
               <Input
                 id="search-users"
-                placeholder="Busque por nome ou @username"
+                placeholder="Buscar perfis"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                className="rounded-full bg-muted px-4"
               />
             </FieldContent>
           </Field>
@@ -72,15 +75,21 @@ export function UserSearchPanel() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center px-4 py-10 text-sm text-muted-foreground sm:px-6">
+        <div className="flex items-center justify-center px-4 py-10">
           <Spinner />
         </div>
       ) : query.trim().length < 2 ? (
-        <div className="px-4 py-10 text-sm text-muted-foreground sm:px-6">
-          Digite pelo menos 2 caracteres para buscar.
+        <div className="px-4 py-16 text-center">
+          <p className="text-[15px] text-muted-foreground">
+            Busque por nome ou @username.
+          </p>
         </div>
       ) : users.length === 0 ? (
-        <div className="px-4 py-10 text-sm text-muted-foreground sm:px-6">Nenhum perfil encontrado.</div>
+        <div className="px-4 py-16 text-center">
+          <p className="text-[15px] text-muted-foreground">
+            Nenhum perfil encontrado.
+          </p>
+        </div>
       ) : (
         <div>
           {users.map((user) => (

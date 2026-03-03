@@ -16,9 +16,11 @@ export function PostList({
 }: PostListProps) {
   if (posts.length === 0) {
     return (
-      <div className="px-6 py-16 text-center">
-        <p className="text-base font-medium">{emptyTitle}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{emptyDescription}</p>
+      <div className="px-4 py-20 text-center">
+        <p className="text-[20px] font-extrabold">{emptyTitle}</p>
+        <p className="mt-1 text-[15px] text-muted-foreground">
+          {emptyDescription}
+        </p>
       </div>
     );
   }
@@ -26,7 +28,11 @@ export function PostList({
   return (
     <div>
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} showAuthorFollow={showAuthorFollow} />
+        <PostCard
+          key={post.id}
+          post={post}
+          showAuthorFollow={showAuthorFollow}
+        />
       ))}
     </div>
   );

@@ -37,50 +37,67 @@ function CommentItem({ postId, comment, depth }: CommentItemProps) {
   const [isReplying, setIsReplying] = useState(false);
   const replies = comment.replies ?? [];
   const hasReplies = replies.length > 0;
-  const isNested = depth > 0;
 
   return (
-    <article className={cn("px-4 py-4 sm:px-6", depth === 0 && "border-b", isNested && "pl-0 sm:pl-0")}>
-      <div className={cn("flex gap-3", isNested && "pl-4")}>
+    <article className={cn("px-4 py-3", depth === 0 && "border-b")}>
+      <div className={cn("flex gap-3", depth > 0 && "pl-4")}>
         <div className="relative flex shrink-0 flex-col items-center">
-          <Avatar className="size-8 border">
-            <AvatarImage alt={comment.author.name} src={comment.author.avatar ?? undefined} />
-            <AvatarFallback>{initials(comment.author.name)}</AvatarFallback>
-          </Avatar>
-          {hasReplies ? <span className="mt-2 h-full w-px bg-border" /> : null}
+          <Link href={`/u/${comment.author.username}`}>
+            <Avatar className="size-8">
+              <AvatarImage
+                alt={comment.author.name}
+                src={comment.author.avatar ?? undefined}
+              />
+              <AvatarFallback>{initials(comment.author.name)}</AvatarFallback>
+            </Avatar>
+          </Link>
+          {hasReplies ? <span className="mt-1 h-full w-0.5 bg-border" /> : null}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <Link href={`/u/${comment.author.username}`} className="min-w-0">
-              <p className="truncate text-sm font-semibold leading-5">{comment.author.name}</p>
-              <p className="truncate text-xs text-muted-foreground">@{comment.author.username}</p>
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/u/${comment.author.username}`}
+              className="flex min-w-0 items-center gap-1"
+            >
+              <span className="truncate text-[15px] font-bold hover:underline">
+                {comment.author.name}
+              </span>
+              <span className="text-[13px] text-muted-foreground">
+                @{comment.author.username}
+              </span>
             </Link>
-
-            <div className="flex items-center gap-1">
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(comment.createdAt, {
-                  addSuffix: true,
-                  locale: ptBR,
-                })}
-              </p>
-              {comment.canDelete ? <DeleteCommentButton commentId={comment.id} /> : null}
-            </div>
+            <span className="text-muted-foreground">&middot;</span>
+            <span className="text-[13px] text-muted-foreground">
+              {formatDistanceToNow(comment.createdAt, {
+                addSuffix: false,
+                locale: ptBR,
+              })}
+            </span>
+            {comment.canDelete ? (
+              <div className="ml-auto">
+                <DeleteCommentButton commentId={comment.id} />
+              </div>
+            ) : null}
           </div>
 
           {comment.deletedAt ? (
-            <p className="mt-2 text-sm italic text-muted-foreground">Comentario removido.</p>
+            <p className="mt-0.5 text-[15px] italic text-muted-foreground">
+              Comentario removido.
+            </p>
           ) : (
-            <p className="mt-2 whitespace-pre-line break-words text-sm leading-6">{comment.content}</p>
+            <p className="mt-0.5 whitespace-pre-line break-words text-[15px] leading-5">
+              {comment.content}
+            </p>
           )}
 
           {!comment.deletedAt ? (
-            <div className="mt-2">
+            <div className="-ml-2 mt-1">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-full px-2 text-xs text-muted-foreground"
+                className="h-8 gap-1.5 rounded-full px-2 text-[13px] text-muted-foreground hover:bg-sky-500/10 hover:text-sky-500"
                 onClick={() => setIsReplying((current) => !current)}
               >
                 <MessageCircleReply className="size-4" />
@@ -90,7 +107,7 @@ function CommentItem({ postId, comment, depth }: CommentItemProps) {
           ) : null}
 
           {isReplying ? (
-            <div className="mt-3">
+            <div className="mt-2">
               <CommentForm
                 postId={postId}
                 parentCommentId={comment.id}
@@ -104,9 +121,14 @@ function CommentItem({ postId, comment, depth }: CommentItemProps) {
           ) : null}
 
           {hasReplies ? (
-            <div className="mt-2 border-l border-border/80">
+            <div className="mt-1">
               {replies.map((reply) => (
-                <CommentItem key={reply.id} postId={postId} comment={reply} depth={depth + 1} />
+                <CommentItem
+                  key={reply.id}
+                  postId={postId}
+                  comment={reply}
+                  depth={depth + 1}
+                />
               ))}
             </div>
           ) : null}
@@ -116,11 +138,15 @@ function CommentItem({ postId, comment, depth }: CommentItemProps) {
   );
 }
 
-export function CommentList({ postId, comments, emptyTitle = "Nenhum comentario ainda." }: CommentListProps) {
+export function CommentList({
+  postId,
+  comments,
+  emptyTitle = "Nenhum comentario ainda.",
+}: CommentListProps) {
   if (comments.length === 0) {
     return (
-      <div className="px-4 py-10 text-center sm:px-6">
-        <p className="text-sm text-muted-foreground">{emptyTitle}</p>
+      <div className="px-4 py-16 text-center">
+        <p className="text-[15px] text-muted-foreground">{emptyTitle}</p>
       </div>
     );
   }
@@ -128,7 +154,12 @@ export function CommentList({ postId, comments, emptyTitle = "Nenhum comentario 
   return (
     <div>
       {comments.map((comment) => (
-        <CommentItem key={comment.id} postId={postId} comment={comment} depth={0} />
+        <CommentItem
+          key={comment.id}
+          postId={postId}
+          comment={comment}
+          depth={0}
+        />
       ))}
     </div>
   );

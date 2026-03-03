@@ -14,20 +14,26 @@ export function CommentPreview({ postId, commentCount, comments }: CommentPrevie
   }
 
   return (
-    <div className="mt-3 space-y-2 rounded-xl border bg-muted/30 p-3">
+    <div className="mt-2 space-y-1.5 border-l-2 border-border/60 pl-3">
       {comments.map((comment) => (
-        <div key={comment.id} className="text-sm">
-          <Link href={`/u/${comment.author.username}`} className="font-medium hover:underline">
-            @{comment.author.username}
+        <p key={comment.id} className="text-[13px] leading-4">
+          <Link
+            href={`/u/${comment.author.username}`}
+            className="font-bold hover:underline"
+          >
+            {comment.author.name}
           </Link>{" "}
-          <span className="whitespace-pre-line break-words text-muted-foreground">
+          <span className="text-muted-foreground">
             {comment.deletedAt ? "Comentario removido." : comment.content}
           </span>
-        </div>
+        </p>
       ))}
 
-      <Link href={`/post/${postId}`} className="text-xs font-medium text-muted-foreground hover:text-foreground">
-        Ver thread completa ({commentCount})
+      <Link
+        href={`/post/${postId}`}
+        className="inline-block text-[13px] text-muted-foreground hover:underline"
+      >
+        Ver todos os {commentCount} comentarios
       </Link>
     </div>
   );

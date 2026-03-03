@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type CommentFormProps = {
   postId: string;
@@ -28,8 +29,8 @@ const COMMENT_CHAR_LIMIT = 500;
 export function CommentForm({
   postId,
   parentCommentId,
-  placeholder = "Escreva seu comentario",
-  submitLabel = "Comentar",
+  placeholder = "Poste sua resposta",
+  submitLabel = "Responder",
   compact = false,
   onSuccess,
   onCancel,
@@ -82,7 +83,9 @@ export function CommentForm({
 
   return (
     <form
-      className={compact ? "rounded-xl border bg-muted/20 p-3" : "border-b px-4 py-4 sm:px-6"}
+      className={cn(
+        compact ? "rounded-xl border bg-muted/20 p-3" : "border-b px-4 py-3",
+      )}
       onSubmit={form.handleSubmit(onSubmit)}
     >
       <FieldGroup className="gap-3">
@@ -102,10 +105,17 @@ export function CommentForm({
                   maxLength={COMMENT_CHAR_LIMIT}
                   disabled={isSubmitting}
                   placeholder={placeholder}
-                  className={compact ? "min-h-16 resize-none text-sm" : "min-h-20 resize-none"}
+                  className={cn(
+                    "resize-none",
+                    compact
+                      ? "min-h-16 text-[15px]"
+                      : "min-h-[52px] border-0 px-0 text-[17px] shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0",
+                  )}
                 />
               </FieldContent>
-              {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+              {fieldState.error ? (
+                <FieldError>{fieldState.error.message}</FieldError>
+              ) : null}
             </Field>
           )}
         />
@@ -114,18 +124,30 @@ export function CommentForm({
           <FieldError>{form.formState.errors.root.message}</FieldError>
         ) : null}
 
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs tabular-nums text-muted-foreground">{remaining} restantes</span>
-          <div className="flex items-center gap-2">
-            {onCancel ? (
-              <Button type="button" variant="ghost" size="sm" disabled={isSubmitting} onClick={onCancel}>
-                Cancelar
-              </Button>
-            ) : null}
-            <Button type="submit" disabled={isSubmitting || !content.trim()} className="rounded-full">
-              {isSubmitting ? <Spinner /> : submitLabel}
+        <div className="flex items-center justify-end gap-2">
+          {content.length > 0 ? (
+            <span className="mr-auto text-[13px] tabular-nums text-muted-foreground">
+              {remaining}
+            </span>
+          ) : null}
+          {onCancel ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={isSubmitting}
+              onClick={onCancel}
+            >
+              Cancelar
             </Button>
-          </div>
+          ) : null}
+          <Button
+            type="submit"
+            disabled={isSubmitting || !content.trim()}
+            className="rounded-full font-bold"
+          >
+            {isSubmitting ? <Spinner /> : submitLabel}
+          </Button>
         </div>
       </FieldGroup>
     </form>
