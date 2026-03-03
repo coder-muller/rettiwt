@@ -28,6 +28,13 @@ export const messageRepository = {
           senderId: input.senderId,
           content: input.content,
         },
+        include: {
+          sender: {
+            include: {
+              profile: true,
+            },
+          },
+        },
       });
 
       await tx.conversation.update({

@@ -13,11 +13,23 @@ import { Textarea } from "@/components/ui/textarea";
 
 type MessageComposerProps = {
   conversationId: string;
+  onMessageSent?: (message: {
+    id: string;
+    content: string;
+    createdAt: string;
+    sender: {
+      id: string;
+      username: string;
+      name: string;
+      avatar: string | null;
+    };
+    isMine: boolean;
+  }) => void;
 };
 
 type MessageComposerValues = z.infer<typeof sendMessageSchema>;
 
-export function MessageComposer({ conversationId }: MessageComposerProps) {
+export function MessageComposer({ conversationId, onMessageSent }: MessageComposerProps) {
   const form = useForm<MessageComposerValues>({
     resolver: zodResolver(sendMessageSchema),
     defaultValues: {
@@ -53,6 +65,10 @@ export function MessageComposer({ conversationId }: MessageComposerProps) {
       conversationId,
       content: "",
     });
+
+    if (result.sentMessage && onMessageSent) {
+      onMessageSent(result.sentMessage);
+    }
   }
 
   const isSubmitting = form.formState.isSubmitting;

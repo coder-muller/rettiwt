@@ -41,7 +41,7 @@ export function MainNav({
   unreadNotifications = 0,
   unreadMessages = 0,
 }: MainNavProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   return (
     <nav className={cn("grid gap-1", mobile && "grid-cols-6")}>

@@ -10,6 +10,21 @@ type ConversationActionState = ActionState & {
   conversationId?: string;
 };
 
+type SendMessageActionState = ActionState & {
+  sentMessage?: {
+    id: string;
+    content: string;
+    createdAt: string;
+    sender: {
+      id: string;
+      username: string;
+      name: string;
+      avatar: string | null;
+    };
+    isMine: boolean;
+  };
+};
+
 export async function startOrOpenConversationAction(input: { targetUserId: string }): Promise<ConversationActionState> {
   const session = await requireSession();
 
@@ -34,7 +49,7 @@ export async function startOrOpenConversationAction(input: { targetUserId: strin
 export async function sendMessageAction(input: {
   conversationId: string;
   content: string;
-}): Promise<ActionState> {
+}): Promise<SendMessageActionState> {
   const session = await requireSession();
 
   const result = await messageService.sendMessage(session.user.id, input);
@@ -52,6 +67,12 @@ export async function sendMessageAction(input: {
 
   return {
     status: "success",
+    sentMessage: result.message
+      ? {
+          ...result.message,
+          createdAt: result.message.createdAt.toISOString(),
+        }
+      : undefined,
   };
 }
 

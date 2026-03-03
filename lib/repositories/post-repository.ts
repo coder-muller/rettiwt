@@ -95,50 +95,91 @@ export const postRepository = {
   },
 
   listFeed(currentUserId: string) {
-    return prisma.post
-      .findMany({
+    const FEED_LIMIT = 100;
+    const postInclude = {
+      author: {
+        include: {
+          profile: true,
+        },
+      },
+      likes: {
+        select: {
+          userId: true,
+        },
+      },
+      comments: {
+        where: {
+          parentCommentId: null,
+        },
         orderBy: {
           createdAt: "desc",
         },
+        take: 2,
         include: {
           author: {
             include: {
               profile: true,
             },
           },
-          likes: {
-            select: {
-              userId: true,
-            },
-          },
+        },
+      },
+      _count: {
+        select: {
           comments: {
             where: {
               parentCommentId: null,
-            },
-            orderBy: {
-              createdAt: "desc",
-            },
-            take: 2,
-            include: {
-              author: {
-                include: {
-                  profile: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              comments: {
-                where: {
-                  parentCommentId: null,
-                  deletedAt: null,
-                },
-              },
+              deletedAt: null,
             },
           },
         },
-        take: 100,
+      },
+    } as const;
+
+    return prisma.follow
+      .findMany({
+        where: {
+          followerId: currentUserId,
+        },
+        select: {
+          followingId: true,
+        },
+      })
+      .then(async (followRows) => {
+        const prioritizedAuthorIds = [currentUserId, ...followRows.map((row) => row.followingId)];
+
+        const prioritizedPosts = await prisma.post.findMany({
+          where: {
+            authorId: {
+              in: prioritizedAuthorIds,
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: postInclude,
+          take: FEED_LIMIT,
+        });
+
+        const remaining = FEED_LIMIT - prioritizedPosts.length;
+
+        if (remaining <= 0) {
+          return prioritizedPosts;
+        }
+
+        const otherPosts = await prisma.post.findMany({
+          where: {
+            authorId: {
+              notIn: prioritizedAuthorIds,
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: postInclude,
+          take: remaining,
+        });
+
+        return [...prioritizedPosts, ...otherPosts];
       })
       .then((rows) => rows.map((row) => mapFeedPost(row, currentUserId)));
   },

@@ -53,7 +53,7 @@ export function ProtectedShell({
   unreadMessages,
   children,
 }: ProtectedShellProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const isMessagesRoute = pathname === "/messages" || pathname.startsWith("/messages/");
 
   return (

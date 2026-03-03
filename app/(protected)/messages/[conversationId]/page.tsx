@@ -3,8 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 import { ConversationList } from "@/components/messages/conversation-list";
-import { MessageComposer } from "@/components/messages/message-composer";
-import { MessageThread } from "@/components/messages/message-thread";
+import { ConversationLive } from "@/components/messages/conversation-live";
 import { requireSession } from "@/lib/auth/session";
 import { messageService } from "@/lib/services/message-service";
 
@@ -52,11 +51,14 @@ export default async function ConversationPage({ params }: ConversationPageProps
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-muted/20">
-          <MessageThread messages={thread.messages} />
+        <div className="min-h-0 flex-1 bg-muted/20">
+          <ConversationLive
+            key={conversationId}
+            conversationId={conversationId}
+            currentUserId={session.user.id}
+            initialMessages={thread.messages}
+          />
         </div>
-
-        <MessageComposer conversationId={conversationId} />
       </div>
     </section>
   );
