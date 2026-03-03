@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ConversationKind {
+  DIRECT
+}
+
+enum NotificationType {
+  POST_LIKED
+  POST_COMMENTED
+  COMMENT_REPLIED
+  USER_FOLLOWED
+}
+
+model user {
+  id                       String                    @id
+  name                     String
+  email                    String                    @unique
+  role                     String?
+  banned                   Boolean                   @default(false)
+  banReason                String?
+  banExpires               DateTime?
+  username                 String                    @unique
+  displayUsername          String?
+  emailVerified            Boolean                   @default(false)
+  image                    String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  sessions                 session[]
+  accounts                 account[]
+  profile                  profile?
+  posts                    post[]                    @relation("PostAuthor")
+  likes                    like[]
+  comments                 comment[]                 @relation("CommentAuthor")
+  following                follow[]                  @relation("FollowFollower")
+  followers                follow[]                  @relation("FollowFollowing")
+  conversationParticipants conversationParticipant[]
+  sentMessages             message[]                 @relation("MessageSender")
+  notificationsReceived    notification[]            @relation("NotificationRecipient")
+  notificationsSent        notification[]            @relation("NotificationActor")
+
+  @@index([name])
+  @@index([role])
+  @@index([banned, banExpires])
+}
+
+model session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  impersonatedBy String?
+  userId    String
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model verification {
+  id         String    @id
+  identifier String    @unique
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+}
+
+model profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  bio       String   @default("")
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+model post {
+  id            String         @id @default(cuid())
+  authorId      String
+  content       String         @db.VarChar(280)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  author        user           @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  likes         like[]
+  comments      comment[]
+  notifications notification[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+}
+
+model like {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model comment {
+  id              String         @id @default(cuid())
+  postId          String
+  authorId        String
+  content         String         @db.VarChar(500)
+  parentCommentId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+  post            post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author          user           @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment   comment?       @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
+  replies         comment[]      @relation("CommentReplies")
+  notifications   notification[]
+
+  @@index([postId, createdAt])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([parentCommentId])
+}
+
+model follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    user     @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   user     @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId, createdAt(sort: Desc)])
+  @@index([followerId, createdAt(sort: Desc)])
+}
+
+model conversation {
+  id            String                    @id @default(cuid())
+  kind          ConversationKind          @default(DIRECT)
+  directKey     String?                   @unique
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  lastMessageAt DateTime                  @default(now())
+  participants  conversationParticipant[]
+  messages      message[]
+
+  @@index([lastMessageAt(sort: Desc)])
+}
+
+model conversationParticipant {
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime?
+  conversation   conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           user         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, conversationId])
+}
+
+model message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String       @db.VarChar(2000)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         user         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@index([senderId, createdAt(sort: Desc)])
+}
+
+model notification {
+  id          String           @id @default(cuid())
+  recipientId String
+  actorId     String
+  type        NotificationType
+  postId      String?
+  commentId   String?
+  dedupeKey   String?          @unique
+  createdAt   DateTime         @default(now())
+  readAt      DateTime?
+  recipient   user             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       user             @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  post        post?            @relation(fields: [postId], references: [id], onDelete: SetNull)
+  comment     comment?         @relation(fields: [commentId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, readAt, createdAt(sort: Desc)])
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+}

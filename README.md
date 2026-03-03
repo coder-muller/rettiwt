@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rettiwt
 
-## Getting Started
+MVP de rede social de texto inspirado em Twitter/X, construído com Next.js App Router.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 + React 19 + TypeScript
+- Tailwind CSS + shadcn/ui
+- Better Auth (email/senha)
+- Better Auth (email/senha + Email OTP)
+- Prisma ORM
+- PostgreSQL
+- Resend (envio de e-mails transacionais)
+
+## Funcionalidades do MVP
+
+- Cadastro, login e logout
+- Sessão persistida
+- Verificacao de e-mail por OTP
+- Esqueci minha senha com OTP por e-mail
+- Troca de senha em `/settings/security`
+- Feed cronológico de posts de texto
+- Criação e exclusão do próprio post
+- Curtir/descurtir posts
+- Perfil público por `@username`
+- Edição de perfil (nome, username, bio, avatar URL)
+- Layout responsivo em preto/branco/cinza
+
+## Requisitos
+
+- Bun 1.3+
+- PostgreSQL local (testado com `postgresql@14`)
+
+## Configuração
+
+1. Instale as dependências:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Configure variáveis de ambiente:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Preencha tambem as variaveis do Resend (`RESEND_API_KEY`, `RESEND_FROM` e opcionalmente `RESEND_REPLY_TO`).
 
-## Learn More
+3. Garanta que o banco exista localmente:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+createdb -h localhost -U guilherme rettiwt
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Gere cliente Prisma e aplique migrações:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+bunx prisma generate
+bunx prisma migrate dev
+```
 
-## Deploy on Vercel
+5. Rode a aplicação:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+bun run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Aplicação: [http://localhost:3000](http://localhost:3000)
+
+## Scripts
+
+- `bun run dev` - ambiente local
+- `bun run build` - build de produção
+- `bun run lint` - lint
+
+## Estrutura principal
+
+- `app/(auth)` - login e cadastro
+- `app/(protected)` - feed, perfil e settings protegidos
+- `app/api/auth/[...all]` - handler do Better Auth
+- `lib/auth` - config e guardas de sessão
+- `lib/services` - regras de negócio
+- `lib/repositories` - acesso a dados via Prisma
+- `lib/actions` - server actions
+- `prisma` - schema e migrations
